@@ -1,0 +1,260 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Bảng CHI TIẾT sau khi có độ rộng cột cố định: chữ trong ô tự xuống dòng, tiêu đề giữ 1 dòng */
+.ct-fixed tbody td {
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+}
+.ct-fixed thead th {
+  white-space: normal !important;
+  overflow-wrap: break-word;
+}
+
+/* Kéo chỉnh độ rộng cột (TableResize): chữ tự xuống dòng, thanh kéo ở mép phải tiêu đề */
+.rz-fixed tbody td,
+.rz-fixed tfoot td {
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+}
+.rz-fixed thead th {
+  white-space: normal !important;
+  overflow-wrap: break-word;
+}
+.rz-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 30;
+}
+.rz-handle:hover {
+  background: rgba(59, 130, 246, 0.7);
+}
+
+/* Đánh dấu ô/dòng đích khi chuyển từ link (VD: bấm đơn giá ở tab BOQ). Giữ cho tới khi người dùng bấm chuột / gõ phím */
+.link-hit-row > td,
+.link-hit-row > th {
+  background-color: #fef3c7 !important;
+}
+.link-hit-cell {
+  background-color: #facc15 !important;
+  outline: 3px solid #2563eb;
+  outline-offset: -2px;
+  position: relative;
+  z-index: 5;
+}
+
+/* Bảng có tiêu đề cố định (TableResize): tách đường viền để đường kẻ của ô dính không bị mất khi cuộn */
+.rz-sticky {
+  border-collapse: separate !important;
+  border-spacing: 0;
+}
+.rz-sticky th,
+.rz-sticky td {
+  border-width: 0 1px 1px 0;
+}
+/* đường kẻ trái chỉ cho cột đầu tiên thật sự của bảng (không phải ô đầu của dòng tiêu đề thứ hai) */
+.rz-sticky tbody tr > :first-child,
+.rz-sticky tfoot tr > :first-child,
+.rz-sticky thead tr:first-child > :first-child {
+  border-left-width: 1px;
+}
+.rz-sticky thead tr:first-child > * {
+  border-top-width: 1px;
+}
+
+/* Đường kẻ bảng thống nhất 1 tông màu, 1 độ dày (tiêu đề và thân bảng không còn lúc đậm lúc nhạt) */
+.rz-sticky th,
+.rz-sticky td {
+  border-color: #cbd5e1 !important;
+  border-style: solid;
+  background-clip: padding-box;
+}
+.rz-sticky {
+  border-color: #cbd5e1;
+}
+
+/* Khung bảng rộng cuộn như Excel (Freeze Panes): bảng cuộn TRONG khung cao vừa màn hình → thanh cuộn ngang luôn ở đáy màn hình;
+   dòng tiêu đề (thead) đứng yên khi cuộn xuống; 2 cột đầu (xfreeze-3: 3 cột) đứng yên khi cuộn ngang.
+   Độ rộng cột đứng yên: --fz1, --fz2 (đặt qua style). Để trong @layer base → màu nền Tailwind của từng dòng / ô vẫn thắng. */
+@layer base {
+  .xfreeze {
+    --fz1: 40px;
+    --fz2: 240px;
+    overflow: auto;
+    max-height: calc(100dvh - 110px);
+    overscroll-behavior-x: contain;
+    scroll-padding-top: var(--fzh, 90px);
+    scroll-padding-left: calc(var(--fz1) + var(--fz2));
+  }
+  /* cửa sổ làm việc toàn màn hình (TaskWorkspace): trừ thanh trên + thanh nút Trình/Duyệt ở đáy */
+  /* cửa sổ làm việc: bỏ phần đầu thư (logo / địa chỉ) và thu gọn lề để bảng có nhiều chỗ hơn */
+  .task-ws .ws-hide {
+    display: none;
+  }
+  .task-ws .dtcp-sheet {
+    padding: 12px;
+  }
+  .task-ws .xfreeze {
+    max-height: calc(100dvh - 170px);
+  }
+  .xfreeze thead {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: #fff;
+    box-shadow: 0 1px 0 #000;
+  }
+  .xfreeze tbody tr {
+    background-color: #fff;
+  }
+  .xfreeze tbody td:nth-child(-n + 2),
+  .xfreeze thead tr:first-child th:nth-child(-n + 2),
+  .xfreeze.xfreeze-3 tbody td:nth-child(3),
+  .xfreeze.xfreeze-3 thead tr:first-child th:nth-child(3) {
+    position: sticky;
+    z-index: 1;
+    background-color: inherit;
+  }
+  .xfreeze thead tr:first-child th:nth-child(-n + 2),
+  .xfreeze.xfreeze-3 thead tr:first-child th:nth-child(3) {
+    z-index: 4;
+    background-color: #fff;
+  }
+  .xfreeze tbody td:first-child,
+  .xfreeze thead tr:first-child th:first-child {
+    left: 0;
+    width: var(--fz1);
+    min-width: var(--fz1);
+    max-width: var(--fz1);
+  }
+  .xfreeze tbody td:nth-child(2),
+  .xfreeze thead tr:first-child th:nth-child(2) {
+    left: var(--fz1);
+  }
+  .xfreeze.xfreeze-3 tbody td:nth-child(2),
+  .xfreeze.xfreeze-3 thead tr:first-child th:nth-child(2) {
+    width: var(--fz2);
+    min-width: var(--fz2);
+    max-width: var(--fz2);
+  }
+  .xfreeze.xfreeze-3 tbody td:nth-child(3),
+  .xfreeze.xfreeze-3 thead tr:first-child th:nth-child(3) {
+    left: calc(var(--fz1) + var(--fz2));
+  }
+  /* đường kẻ phải của cột đứng yên cuối (border-collapse không bám theo ô sticky) */
+  .xfreeze:not(.xfreeze-3) tbody td:nth-child(2),
+  .xfreeze:not(.xfreeze-3) thead tr:first-child th:nth-child(2),
+  .xfreeze.xfreeze-3 tbody td:nth-child(3),
+  .xfreeze.xfreeze-3 thead tr:first-child th:nth-child(3) {
+    box-shadow: 1px 0 0 #94a3b8;
+  }
+  /* xfreeze-3: cột thứ 3 (ĐVT bảng giá đội) có độ rộng --fz3 */
+  .xfreeze.xfreeze-3 tbody td:nth-child(3),
+  .xfreeze.xfreeze-3 thead tr:first-child th:nth-child(3) {
+    width: var(--fz3, auto);
+    min-width: var(--fz3, 0);
+    max-width: var(--fz3, none);
+  }
+  /* xfreeze-5: 5 cột đầu đứng yên (bảng thầu phụ: STT, hạng mục, nội dung, mã SP, ĐVT) — độ rộng --fz1..--fz5 */
+  .xfreeze.xfreeze-5 tbody td:nth-child(-n + 5),
+  .xfreeze.xfreeze-5 thead tr:first-child th:nth-child(-n + 5) {
+    position: sticky;
+    z-index: 1;
+    background-color: inherit;
+  }
+  .xfreeze.xfreeze-5 thead tr:first-child th:nth-child(-n + 5) {
+    z-index: 4;
+    background-color: #fff;
+  }
+  .xfreeze.xfreeze-5 tbody td:nth-child(2),
+  .xfreeze.xfreeze-5 thead tr:first-child th:nth-child(2) { width: var(--fz2); min-width: var(--fz2); max-width: var(--fz2); left: var(--fz1); }
+  .xfreeze.xfreeze-5 tbody td:nth-child(3),
+  .xfreeze.xfreeze-5 thead tr:first-child th:nth-child(3) { width: var(--fz3); min-width: var(--fz3); max-width: var(--fz3); left: calc(var(--fz1) + var(--fz2)); }
+  .xfreeze.xfreeze-5 tbody td:nth-child(4),
+  .xfreeze.xfreeze-5 thead tr:first-child th:nth-child(4) { width: var(--fz4); min-width: var(--fz4); max-width: var(--fz4); left: calc(var(--fz1) + var(--fz2) + var(--fz3)); }
+  .xfreeze.xfreeze-5 tbody td:nth-child(5),
+  .xfreeze.xfreeze-5 thead tr:first-child th:nth-child(5) { width: var(--fz5); min-width: var(--fz5); max-width: var(--fz5); left: calc(var(--fz1) + var(--fz2) + var(--fz3) + var(--fz4)); }
+  .xfreeze.xfreeze-5 tbody td:nth-child(2),
+  .xfreeze.xfreeze-5 thead tr:first-child th:nth-child(2) { box-shadow: none; }
+  .xfreeze.xfreeze-5 tbody td:nth-child(5),
+  .xfreeze.xfreeze-5 thead tr:first-child th:nth-child(5) { box-shadow: 1px 0 0 #94a3b8; }
+}
+
+/* Bảng duyệt giá (tổ đội, thầu phụ): kẻ ĐEN đủ mọi đường dọc / ngang. Dùng border-collapse: separate + mỗi ô tự kẻ viền phải
+   và dưới (viền trên / trái do khung bảng) → không bị ô đứng yên (sticky) hay ô có nền màu che mất, zoom nhỏ vẫn thấy rõ. */
+.tmn-form table.tmn-grid.xl-lines {
+  border-collapse: separate;
+  border-spacing: 0;
+  border-top: 1px solid #000;
+  border-left: 1px solid #000;
+}
+.tmn-form table.tmn-grid.xl-lines th,
+.tmn-form table.tmn-grid.xl-lines td {
+  border: 0;
+  border-right: 1px solid #000;
+  border-bottom: 1px solid #000;
+}
+
+/* Tìm kiếm Ctrl+F (FindBar): ô khớp tô vàng, ô đang chọn tô cam */
+[data-find="1"] { background-color: #fef08a !important; }
+[data-find="2"] { background-color: #fdba74 !important; outline: 2px solid #c2410c; outline-offset: -2px; }
+
+/* SỐ DÒNG như Excel (1, 2, 3...) ở mép trái bảng duyệt giá: nằm trong ô đầu mỗi dòng (cột STT, đứng yên khi cuộn ngang).
+   Số dòng = thứ tự dòng trong bảng = số dòng dùng khi gõ công thức (K5, B2:B10...). */
+.xl-rn tbody {
+  counter-reset: xlrn;
+}
+.xl-rn tbody > tr {
+  counter-increment: xlrn;
+}
+.xl-rn tbody > tr > td:first-child {
+  position: sticky;
+  padding-left: 24px !important;
+}
+.xl-rn tbody > tr > td:first-child::before {
+  content: counter(xlrn);
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  border-right: 1px solid #cbd5e1;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 400;
+  font-style: normal;
+  pointer-events: none;
+  z-index: 2;
+}

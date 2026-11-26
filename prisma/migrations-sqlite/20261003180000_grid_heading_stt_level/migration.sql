@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "GridRowMeta" ADD COLUMN "stt" TEXT;
+ALTER TABLE "GridRowMeta" ADD COLUMN "level" INTEGER NOT NULL DEFAULT 0;

@@ -1,0 +1,1 @@
+ALTER TABLE "SubProposal" ADD COLUMN "vatRows" TEXT NOT NULL DEFAULT '[]';

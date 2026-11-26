@@ -1,28 +1,50 @@
 {
-  "name": "tmn-web",
+  "name": "dtcp-online",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "import:catalog": "node scripts/import-catalog.mjs",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:refresh": "npm run import:catalog && npm run db:seed"
   },
   "dependencies": {
-    "next": "15.5.29",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "server-only": "^0.0.1"
+    "@anthropic-ai/sdk": "^1.9.0",
+    "@prisma/adapter-better-sqlite3": "^7.10.0",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.11.1",
+    "dejavu-fonts-ttf": "^2.37.3",
+    "exceljs": "^4.4.0",
+    "jszip": "^3.10.1",
+    "next": "16.3.5",
+    "next-auth": "^5.0.0-beta.32",
+    "nodemailer": "^7.0.13",
+    "pdfkit": "^0.17.2",
+    "pg": "^8.23.1",
+    "prisma": "^7.10.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "sharp": "^0.35.4",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pdfkit": "^0.17.7",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.5.29",
+    "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   }
 }

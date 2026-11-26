@@ -1,0 +1,1315 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN // Quản trị: sửa bảng giá gốc/danh mục công tác, quản lý người dùng
+  EDITOR // Tạo/sửa dự án và BOQ
+  VIEWER // Chỉ xem
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  username     String    @unique
+  passwordHash String
+  role         UserRole  @default(EDITOR)
+  procRoles    String    @default("") // Vai trò ở phân hệ Mua vật tư, nhiều vai trò cách nhau dấu phẩy: GS,CHT,CBVT,KTVT,PTGD,KT (xem src/lib/proc.ts)
+  apps         String    @default("DTCP") // Chương trình được dùng, cách nhau dấu phẩy: DTCP,PROC,PRICE,SUB (xem src/lib/apps.ts); ADMIN dùng tất cả
+  position     String    @default("") // Chức danh (QSĐT, QSTT, Cán bộ vật tư...) — hiển thị + gợi ý quyền khi tạo tài khoản
+  dtcpPerms    String    @default("") // Quyền DT-CP: VIEW,EDIT,QSTT,TP_KC,TP_HTPQ,TP_HTKV,PTG,NORM,NORM_REVIEW,PRICE (xem src/lib/perms.ts)
+  subRoles     String    @default("") // Quyền trình giá THẦU PHỤ: QSDT,QSTT,TP_KC,TP_HTPQ,TP_HTKV,PTG,VIEW
+  areas        String    @default("") // Khu vực được làm việc "1,3" (rỗng = tất cả) — áp cho mọi phân hệ
+  priceRoles   String    @default("") // Vai trò ở phân hệ Đệ trình giá đội: QSTT,TP_KC,TP_HTPQ,TP_HTKV (xem src/lib/gia-doi.ts)
+  email        String    @default("") // Email công ty — nhận mã OTP khi đăng nhập (xem src/lib/login-otp.ts)
+  createdAt    DateTime  @default(now())
+  projects     Project[]
+  loginOtps    LoginOtp[]
+}
+
+// Mã 6 số gửi qua email ở bước 2 khi đăng nhập (chỉ lưu bản băm, không lưu mã gốc)
+model LoginOtp {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Chi phí cấu thành 1 dòng chiết tính: Vật tư (VL) / Thiết bị (M) / Nhân công (NC)
+enum CostCategory {
+  VT
+  TB
+  NC
+}
+
+// Bảng giá gốc hợp nhất từ "2. Vat Tu" / "3. Thiet Bi" / "4. Nhan Cong"
+model Resource {
+  id         String       @id @default(cuid())
+  code       String       @unique
+  name       String
+  unit       String
+  unitPrice  Float
+  sourceType CostCategory // sheet gốc (không nhất thiết trùng "category" khi dùng trong 1 công tác)
+  groupLabel String       @default("")
+  note       String       @default("")
+  projectId  String? // null = tài nguyên của bảng giá gốc chung; có giá trị = vật liệu riêng của dự án đó (VD loại gạch/đá theo spec CĐT)
+  updatedAt  DateTime     @updatedAt
+  usages     WorkItemResource[]
+  projectOverrides ProjectResourcePrice[]
+
+  @@index([projectId])
+}
+
+// Đơn giá riêng theo từng dự án cho 1 tài nguyên (khác đơn giá gốc chung trong bảng giá gốc) -
+// dùng khi 1 dự án thương lượng được giá vật tư/nhân công/thiết bị khác với giá gốc.
+model ProjectResourcePrice {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  resourceId String
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  unitPrice  Float // Đơn giá SAU VAT - đơn giá thực nhập cho dự án này
+  vatRate    Float    @default(0) // Thuế suất GTGT áp dụng cho tài nguyên này trong dự án
+  updatedAt  DateTime @updatedAt
+
+  @@unique([projectId, resourceId])
+}
+
+// Danh mục công tác chiết tính (từ "1. Dinh Muc") - đơn giá TMN tự lập, không dùng trực tiếp mã TT12 quốc gia
+model WorkItem {
+  id        String   @id @default(cuid())
+  code      String // Mã ĐM (kiểu TT12, VD AF.81141-1) - KHÔNG bắt buộc duy nhất, xem README (1 mã trùng đã biết: AK.22123-1)
+  name      String
+  unit      String
+  section    String  @default("") // VD "PHẦN HẦM"
+  subsection String  @default("") // VD "CÔNG TÁC VÁN KHUÔN"
+  note      String   @default("")
+  // fallback khi 1 công tác không tách được hao phí chi tiết (hiện tại: 0 dòng dùng fallback)
+  fixedVT   Float?
+  fixedTB   Float?
+  fixedNC   Float?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  resources WorkItemResource[]
+  boqItems  BoqItem[]
+  aliases   WorkItemAlias[]
+
+  @@index([code])
+  @@index([section, subsection])
+}
+
+// Bộ nhớ "Mô tả công việc (từ BOQ ngoài) -> Công tác trong danh mục", để lần nhập Excel sau
+// tự nhận diện lại các mô tả đã từng được người dùng gán thủ công (giống sheet "ANH XA").
+model WorkItemAlias {
+  id             String   @id @default(cuid())
+  normalizedText String   @unique
+  rawText        String
+  confirmed      Boolean  @default(false) // true = người dùng tự chọn/xác nhận mã (ưu tiên hơn nguyên tắc phần thô); false = học tự động từ bản cũ
+  workItemId     String
+  workItem       WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+}
+
+// Dòng hao phí định mức: 1 WorkItem có nhiều dòng, mỗi dòng tham chiếu 1 Resource
+model WorkItemResource {
+  id          String       @id @default(cuid())
+  workItemId  String
+  workItem    WorkItem     @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  resourceId  String
+  resource    Resource     @relation(fields: [resourceId], references: [id])
+  category    CostCategory // cột chi phí mà dòng này cộng vào (VT/TB/NC) - có thể khác resource.sourceType
+  quantity    Float // định mức hao phí / 1 đơn vị công tác (nếu có công thức thì = kết quả công thức)
+  quantityFormula String? // công thức kiểu Excel của định mức, VD "1/3" (null = nhập số thường)
+  wastageRate Float        @default(0) // tỷ lệ hao hụt
+
+  @@index([workItemId])
+  @@index([resourceId])
+}
+
+// Dự án / gói thầu DT-CP
+model Project {
+  id                 String   @id @default(cuid())
+  name               String
+  packageName        String   @default("") // Tên gói thầu
+  investor           String   @default("") // Tổng Thầu
+  location           String   @default("") // Địa điểm xây dựng
+  projectType        String   @default("") // Loại công trình
+  packageType        String   @default("THO") // Loại gói thầu: THO | HOAN_THIEN | NOI_THAT | MEP | TONG_THAU
+  laborByWork        Boolean  @default(false) // Nhân công đặt tên theo công việc BOQ (mỗi tên = 1 nhân công riêng của dự án, xem src/lib/labor-sync.ts) thay vì theo mã nhân công của định mức
+  area               String   @default("") // Khu vực: "1".."5" (rỗng = chưa chọn)
+  // Duyệt DT-CP: QSĐT lập → trình QSTT → QSTT trình 3 Trưởng phòng → đủ 3 TP xem → trình Phó Tổng → duyệt (khoá không sửa)
+  dtcpStatus         String   @default("DRAFT") // DRAFT | QSTT | TP | PTG | APPROVED
+  dtcpTp             String   @default("{}") // JSON {KC|HTPQ|HTKV: {by, at}} Trưởng phòng đã xem & đồng ý trình Phó Tổng
+  dtcpNote           String   @default("") // ý kiến trả lại gần nhất
+  contractNo         String   @default("") // Số hợp đồng (bắt buộc nhập khi trình DT-CP)
+  dtcpQsttId         String   @default("") // QSTT được QSĐT chọn kiểm tra DT-CP này khi trình (hiện ở "Việc của tôi" của người đó)
+  dtcpQsttName       String   @default("")
+  dtcpTpKey          String   @default("") // Trưởng phòng được QSTT chọn duyệt DT-CP: KC | HTPQ | HTKV (trống = DT-CP cũ, trình 3 TP)
+  dtcpSentAt         DateTime? // QSTT gửi DT-CP cho công trình
+  dtcpSubmittedBy    String   @default("")
+  dtcpSubmittedAt    DateTime?
+  dtcpApprovedBy     String   @default("")
+  dtcpApprovedAt     DateTime?
+  contractId         String? // Hợp đồng chứa DT-CP này (null = HĐ riêng, chưa gom)
+  contract           Contract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  siteId             String? // DANH MỤC DỰ ÁN (ProjectSite) — bắt buộc khi QSĐT trình DT-CP; đang lập để đấu thầu thì chưa cần
+  site               ProjectSite? @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  preparedDate       DateTime @default(now())
+  overheadRate       Float    @default(0.065) // Chi phí chung / Trực tiếp phí (T)
+  taxableProfitRate  Float    @default(0.055) // TN chịu thuế tính trước / (T+C)
+  vatRate            Float    @default(0.1) // Thuế suất GTGT
+  createdById        String
+  createdBy          User     @relation(fields: [createdById], references: [id])
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  boqItems           BoqItem[]
+  resourcePrices     ProjectResourcePrice[]
+  subcontractorItems SubcontractorItem[]
+  otherCostItems     OtherCostItem[]
+  progress           String   @default("") // Tiến độ (người dùng tự điền)
+  dtcpLines          DtcpLine[]
+  dtcpColumns        DtcpColumn[]
+  ncKhacRate         Float    @default(0) // Nhân công khác = tỷ lệ này × thành tiền nhân công (sheet CHI TIẾT)
+  tbRate             Float    @default(0) // Thiết bị (phụ) = tỷ lệ này × thành tiền nhân công
+  mmtbRate           Float    @default(0) // MMTB + vật tư phụ = tỷ lệ này × (thành tiền dòng + nhân công khác)
+  resourceWastages   ProjectResourceWastage[]
+  sheets             ProjectSheet[]
+  vtGroups           VtGroup[]
+  vtPlacements       VtPlacement[]
+  sheetManualItems   SheetManualItem[]
+  subcontractorNameToggles SubcontractorNameToggle[]
+  fieldFormulas FieldFormula[]
+  lineSwaps     BoqLineResourceSwap[]
+  lineQtys      BoqLineQty[]
+  boqImages     BoqImage[]
+  procMembers      ProcMember[]
+  materialRequests MaterialRequest[]
+  purchaseOrders   PurchaseOrder[]
+  payables         Payable[]
+  equipCalcs       EquipCalc[]
+
+  @@index([contractId])
+  @@index([siteId])
+}
+
+// 1 dòng khối lượng trong BOQ của 1 dự án. workItemId có thể để trống (chưa có định mức khớp) -
+// vẫn nhập được vào BOQ, sau đó gán/đổi công tác sau qua cột "Mã định mức" trên bảng.
+model BoqItem {
+  id             String    @id @default(cuid())
+  projectId      String
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workItemId     String?
+  workItem       WorkItem? @relation(fields: [workItemId], references: [id])
+  rawDescription String    @default("") // mô tả gốc từ BOQ ngoài (giữ lại kể cả khi đã khớp, để đối chiếu)
+  rawUnit        String    @default("") // ĐVT gốc từ BOQ ngoài
+  quantity       Float
+  isHeading      Boolean   @default(false) // dòng đầu mục lớn (A, B, I, II...) giữ nguyên từ BOQ gốc, không có khối lượng
+  level          Int? // cấp đầu mục do người dùng tự đặt (0 = lớn nhất); null = tự nhận theo STT
+  stt            String    @default("") // STT gốc trong file BOQ (A, I, 1, 2...)
+  sheetId        String? // null = sheet BOQ chính; có giá trị = thuộc 1 sheet bổ sung (Prelim, BPTC...)
+  sheet          ProjectSheet? @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  method         String    @default("DETAIL") // "DETAIL" = chiết tính chi tiết | "SUB" = giao thầu phụ
+  subcontractorItems SubcontractorItem[]
+  lineSwaps      BoqLineResourceSwap[]
+  lineQtys       BoqLineQty[]
+  images         BoqImage[]
+  quotedUnitPrice Float?   // "Giá Báo CĐT" - đơn giá chào chủ đầu tư, người dùng tự nhập (khác đơn giá trực tiếp phí)
+  directMode     String?   // Trực tiếp phí của đầu mục liên kết: null = tính theo định mức/thầu phụ | "PCT" = % của đầu mục khác | "LINK" = lấy từ sheet bảng tự do
+  directPct      Float?    // PCT: tỷ lệ % (3 = 3%)
+  directBaseId   String?   // PCT: id dòng đầu mục BOQ làm cơ sở tính %
+  directLink     String?   // LINK: "grid:<sheetId>" | "gridh:<metaId>"
+  quotedMode     String?   // null = nhập đơn giá | "PCT" = % của đầu mục khác | "LINK" = lấy từ sheet bảng tự do
+  quotedPct      Float?    // PCT: tỷ lệ % (3 = 3%)
+  quotedBaseId   String?   // PCT: id dòng đầu mục BOQ làm cơ sở tính %
+  quotedLink     String?   // LINK: "grid:<sheetId>" | "gridh:<metaId>"
+  orderIndex     Int       @default(0)
+  note           String    @default("")
+  createdAt      DateTime  @default(now())
+
+  @@index([projectId])
+}
+
+// Ảnh minh hoạ của 1 dòng BOQ (gói hoàn thiện / nội thất). File ảnh nằm trên ổ đĩa máy chủ (xem
+// src/lib/uploads.ts), DB chỉ lưu tên file; đã nén về tối đa 1MB/ảnh khi lưu.
+model BoqImage {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  boqItemId  String
+  boqItem    BoqItem  @relation(fields: [boqItemId], references: [id], onDelete: Cascade)
+  fileName   String
+  mime       String   @default("image/jpeg")
+  width      Int      @default(0)
+  height     Int      @default(0)
+  orderIndex Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([boqItemId])
+  @@index([projectId])
+}
+
+// Dòng chi phí khác tự thêm trong DT-CP (giống "II. CHI PHÍ KHÁC" trong file mẫu Ánh Dương) -
+// người dùng thêm/bớt tự do, cộng vào Chi phí Trực tiếp (T) của DT-CP.
+model OtherCostItem {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name       String
+  amount     Float
+  note       String   @default("")
+  orderIndex Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([projectId])
+}
+
+// Chi phí thầu phụ (khoán ngoài) của 1 dự án - không tính theo định mức/BOQ như phần tự thi công
+model SubcontractorItem {
+  id             String   @id @default(cuid())
+  projectId      String
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name           String // Nội dung / hạng mục thầu phụ
+  contractorName String   @default("") // Tên nhà thầu phụ
+  boqItemId      String? // nếu có: phần giao thầu của 1 công tác BOQ (1 công tác có thể có nhiều phần); amount = unitPrice × khối lượng của phần
+  followBoq      Boolean  @default(false) // true = khối lượng của phần luôn bằng khối lượng BOQ (thầu phụ trọn gói)
+  coverVT        Boolean  @default(true) // thầu phụ bao vật tư
+  coverTB        Boolean  @default(true) // thầu phụ bao thiết bị
+  coverNC        Boolean  @default(true) // thầu phụ bao nhân công
+  percent        Float? // giao theo % khối lượng BOQ của công tác (null = khối lượng nhập tay)
+  assignId       String? // các phần giao cùng 1 lần "giao thầu phụ cho đầu mục" có chung assignId
+  fromHeadingId  String? // id dòng đầu mục BOQ nơi giao
+  coveredLines   String? // JSON: id các dòng hao phí (WorkItemResource) thầu phụ bao — null = theo 3 ô VT/TB/NC
+  boqItem        BoqItem? @relation(fields: [boqItemId], references: [id], onDelete: Cascade)
+  unitPrice      Float    @default(0)
+  quotedPct      Float? // đơn giá đang là số tạm tính = quotedPct% × giá báo CĐT (null = giá người dùng tự nhập / dán)
+  mgmtVtPct      Float? // % chi phí quản lý vật tư TMN cấp riêng cho phần giao này (null = theo tỷ lệ của nhà thầu)
+  mgmtTbPct      Float? // % chi phí quản lý thiết bị TMN cấp riêng cho phần giao này (null = theo tỷ lệ của nhà thầu)
+  prelimPct      Float    @default(0) // % Prelim (giống % quản lý của TH Nhân Công): thành tiền = SL × đơn giá × (1 + %), trước VAT
+  vatRate        Float    @default(0) // thuế suất VAT của thầu phụ (0.08 = 8%); amount là giá trị TRƯỚC VAT, DT-CP lấy sau VAT
+  unit           String   @default("") // ĐVT (dòng bổ sung tự nhập; dòng link BOQ lấy theo BOQ)
+  quantity       Float    @default(0) // SL (dòng bổ sung tự nhập; dòng link BOQ lấy theo BOQ)
+  groupId        String? // đầu mục lớn tự thêm (VtGroup kind "TP") của dòng bổ sung
+  amount         Float // Giá trị
+  note           String   @default("")
+  orderIndex     Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  @@index([assignId])
+  @@index([boqItemId])
+  @@index([projectId])
+}
+
+// Bật/tắt hiện riêng 1 dòng theo tên thầu phụ (SubcontractorItem.contractorName) bên sheet DT-CP, dưới
+// "Thầu phụ theo CHI TIẾT" - tắt = gộp chung vào "chưa gán thầu phụ". contractorName là chữ tự do
+// (không có bảng riêng cho "nhà thầu phụ") nên khoá theo tên đã chuẩn hoá (trim), không theo id.
+model SubcontractorNameToggle {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name       String
+  showInDtcp Boolean  @default(true)
+  // chi phí quản lý vật tư / thiết bị TMN cấp cho nhà thầu này (giao thầu phụ phần nhân công): % trên giá trị VT / TB cấp
+  mgmtVtPct  Float    @default(0)
+  mgmtTbPct  Float    @default(0)
+
+  @@unique([projectId, name])
+}
+
+// Dòng của bảng tổng hợp DT-CP (Doanh thu - Chi phí), dạng cây (parentId) để thêm/xoá tự do.
+// Dòng lá lấy giá trị từ linkSource (liên kết tự chọn) hoặc manualAmount; dòng cha = tổng các dòng con.
+model DtcpLine {
+  id           String     @id @default(cuid())
+  projectId    String
+  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentId     String?
+  section      String // "A" (doanh thu) | "B" (chi phí)
+  name         String
+  unit         String     @default("")
+  linkSource   String     @default("") // "" = nhập tay | boq_quoted | vl | nc | m | subcontractor | other
+  manualAmount Float      @default(0)
+  formula      String     @default("") // công thức Thành tiền kiểu Excel (bắt đầu bằng =), "" = không dùng
+  nameLocked   Boolean    @default(false) // người dùng đã tự sửa tên → đồng bộ từ đầu mục gốc không đổi tên dòng này nữa
+  note         String     @default("")
+  orderIndex   Int        @default(0)
+  cells        DtcpCell[]
+
+  @@index([projectId])
+}
+
+// Cột so sánh bổ sung do người dùng tự thêm (VD: so với giá CĐT đề xuất)
+model DtcpColumn {
+  id         String     @id @default(cuid())
+  projectId  String
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title      String
+  orderIndex Int        @default(0)
+  cells      DtcpCell[]
+
+  @@index([projectId])
+}
+
+model DtcpCell {
+  id       String     @id @default(cuid())
+  lineId   String
+  line     DtcpLine   @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  columnId String
+  column   DtcpColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  value    Float      @default(0)
+  formula  String     @default("") // công thức của ô (bắt đầu bằng =), "" = nhập số
+
+  @@unique([lineId, columnId])
+}
+
+// Hao hụt nhập 1 lần theo từng tài nguyên cho mỗi dự án (sheet TH Vật Tư) - áp dụng cho mọi dòng CHI TIẾT dùng tài nguyên đó
+model ProjectResourceWastage {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  resourceId String
+  rate       Float // 0.05 = 5%
+
+  @@unique([projectId, resourceId])
+}
+
+// Đầu mục lớn (THÉP, BÊ TÔNG, CÁT ĐÁ XI...) do người dùng thêm trong sheet TH Vật Tư,
+// nằm trong mục lớn A (mua từ Hợp Nhân) hoặc B (mua từ đối tác khác)
+model VtGroup {
+  id         String @id @default(cuid())
+  kind       String @default("VT") // "VT" = sheet TH Vật Tư | "NC" = sheet TH Nhân Công
+  projectId  String
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  section    String // "A" | "B"
+  name       String
+  orderIndex Int    @default(0)
+  showInDtcp Boolean @default(true) // tắt = gộp chung giá trị đầu mục này vào "chưa phân nhóm" ở sheet DT-CP thay vì tách dòng riêng
+
+  @@index([projectId])
+}
+
+// Vị trí của 1 vật tư trong sheet TH Vật Tư (mục lớn A/B, đầu mục lớn, thứ tự) + ghi chú.
+// Vật tư chưa có bản ghi = mặc định mục B, chưa phân nhóm.
+model VtPlacement {
+  id         String  @id @default(cuid())
+  projectId  String
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  resourceId String
+  kind       String  @default("VT")
+  section    String  @default("B")
+  groupId    String?
+  orderIndex Int     @default(1000000)
+  note       String  @default("")
+  // TH Nhân Công: % quản lý của đội thi công (thành tiền nhân công = KL × đơn giá × (1 + %)). mgmtTbPct: chưa dùng
+  mgmtVtPct  Float   @default(0)
+  mgmtTbPct  Float   @default(0)
+
+  @@unique([projectId, resourceId, kind])
+}
+
+// Dòng người dùng tự bổ sung (không lấy từ CHI TIẾT) trong sheet TH Nhân Công - mục B "Nhân Công Khác"
+model SheetManualItem {
+  id         String  @id @default(cuid())
+  projectId  String
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kind       String  @default("NC")
+  groupId    String?
+  name       String
+  unit       String  @default("")
+  quantity   Float   @default(0)
+  unitPrice  Float   @default(0)
+  vatRate    Float   @default(0) // thuế suất VAT (dòng thiết bị: DT-CP lấy thành tiền sau VAT; 0.08 = 8%)
+  calcId     String? // dòng do "Tính toán thiết bị" tạo ra (EquipCalc.id) - tính lại sẽ thay thế các dòng này
+  days       Float? // thời gian thuê (ngày): có thì thành tiền = SL × đơn giá (đ/ngày) × số ngày; null = SL × đơn giá
+  note       String  @default("")
+  orderIndex Int     @default(0)
+
+  @@index([projectId])
+}
+
+// Ghi nhận người dùng (không phải admin) tự thêm định mức mới, để admin kiểm tra / thống nhất lại mã
+model CatalogChange {
+  id             String    @id @default(cuid())
+  userId         String
+  userName       String
+  workItemId     String
+  workItemCode   String
+  workItemName   String
+  resourceIds    String    @default("") // id các vật tư / nhân công / máy MỚI được tạo kèm (cách nhau dấu phẩy)
+  kind           String    @default("NORM") // NORM = định mức mới | LINES = thêm dòng hao phí vào định mức có sẵn
+  lineIds        String    @default("") // LINES: id các dòng hao phí (WorkItemResource) đã thêm - không duyệt thì chỉ xoá các dòng này
+  reviewed       Boolean   @default(false)
+  reviewedByName String    @default("")
+  rejected       Boolean   @default(false) // true = quản trị viên không duyệt (định mức bị gỡ khỏi danh mục)
+  rejectReason   String    @default("")
+  createdAt      DateTime  @default(now())
+  reviewedAt     DateTime?
+
+  @@index([reviewed])
+}
+
+// Sheet bổ sung ngoài 8 sheet chuẩn (VD: Prelim, BPTC, các BOQ hạng mục hoàn thiện).
+// kind "BOQ": bảng khối lượng như tab BOQ (các dòng là BoqItem có sheetId) - đi vào CHI TIẾT / tổng hợp.
+// kind "GRID": bảng tự do nhập số dòng x số cột (GridCell), có thể chọn 1 cột số làm "Thành tiền" để link vào DT-CP.
+model ProjectSheet {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name       String
+  kind       String   @default("BOQ")
+  orderIndex Int      @default(0)
+  colTitles  String   @default("[]") // GRID: JSON mảng tên cột
+  rowCount   Int      @default(0) // GRID: số dòng
+  amountCol  Int? // GRID: chỉ số cột "Thành tiền" (0-based)
+  merges     String   @default("[]") // GRID: JSON mảng ô gộp [{r1,c1,r2,c2}] (0-based, gồm cả 2 đầu; dòng tiêu đề có chỉ số âm: -1 = dòng tên cột, -2, -3... = các dòng tiêu đề phụ phía trên)
+  autoStt    Boolean? // GRID: tự đánh số STT (cột đầu) theo các dòng đã có tên công việc (cột thứ 2); null = tự nhận theo tên cột đầu là "TT"/"STT"
+  headerRows String   @default("[]") // GRID: JSON các dòng tiêu đề phụ phía trên dòng tên cột: [dòng sát tên cột nhất, ...], mỗi dòng là mảng chữ theo cột
+  linkCol    String? // GRID: đưa sheet vào CHI TIẾT ở cột chi phí này (vt | nc | nck | tp | tb | mmtb); null = không đưa
+  createdAt  DateTime @default(now())
+
+  boqItems BoqItem[]
+  cells    GridCell[]
+  metas    GridRowMeta[]
+
+  @@index([projectId])
+}
+
+model GridCell {
+  id      String       @id @default(cuid())
+  sheetId String
+  sheet   ProjectSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  row     Int
+  col     Int
+  value   String       @default("")
+  style   String       @default("") // JSON định dạng ô (in đậm, căn lề, màu chữ/nền, %, số lẻ...); rỗng = mặc định
+
+  @@unique([sheetId, row, col])
+}
+
+// Dòng đặc biệt của bảng tự do: dòng ĐẦU MỤC LỚN (các dòng bên dưới thuộc đầu mục cho tới đầu mục kế tiếp)
+model GridRowMeta {
+  id         String       @id @default(cuid())
+  sheetId    String
+  sheet      ProjectSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  row        Int
+  title      String       @default("")
+  stt        String? // số thứ tự do người dùng tự gõ (VD "I", "1.1", "A"); null = tự đánh theo cấp
+  level      Int          @default(0) // cấp đầu mục (0 = lớn nhất); đầu mục cấp sâu hơn nằm trong đầu mục cấp trước nó
+  showInDtcp Boolean      @default(false) // bật = tự tạo 1 dòng riêng cho đầu mục này bên sheet DT-CP (kéo thả để xếp vào đúng chỗ)
+
+  @@unique([sheetId, row])
+}
+
+// Công thức kiểu Excel gõ vào ô số của các sheet TH Vật Tư / Nhân Công / Thiết Bị / Thầu Phụ.
+// kind: price (targetId = resourceId, field unitPrice = đơn giá sau VAT) | manual (SheetManualItem: quantity, unitPrice) | sub (SubcontractorItem: quantity, unitPrice)
+model FieldFormula {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kind      String
+  targetId  String
+  field     String
+  formula   String
+
+  @@unique([projectId, kind, targetId, field])
+}
+
+// Đổi vật liệu của 1 dòng hao phí (WorkItemResource) cho riêng 1 dòng BOQ trong dự án (VD gạch ốp theo spec CĐT chỉ định)
+model BoqLineResourceSwap {
+  id         String  @id @default(cuid())
+  projectId  String
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  boqItemId  String
+  boqItem    BoqItem @relation(fields: [boqItemId], references: [id], onDelete: Cascade)
+  lineId     String // id WorkItemResource của định mức
+  resourceId String // vật liệu thay thế (Resource, thường là vật liệu riêng của dự án)
+
+  @@unique([boqItemId, lineId])
+}
+
+// Ghi đè "Tổng KL" của 1 dòng hao phí cho riêng 1 dòng BOQ trong dự án (không đổi định mức chung). Số hoặc công thức dùng KL = khối lượng BOQ của dòng, VD =KL/0.2
+model BoqLineQty {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  boqItemId String
+  boqItem   BoqItem @relation(fields: [boqItemId], references: [id], onDelete: Cascade)
+  lineId    String // id WorkItemResource của định mức
+  qty       Float   @default(0) // giá trị Tổng KL (khi không có công thức, hoặc giá trị tính lần cuối)
+  formula   String  @default("") // công thức (dùng KL); trống = số
+
+  @@unique([boqItemId, lineId])
+}
+
+// Hợp đồng: gom nhiều DT-CP (DT-CP gốc + các phụ lục) của cùng 1 HĐ
+model Contract {
+  id        String    @id @default(cuid())
+  name      String
+  createdAt DateTime  @default(now())
+  projects  Project[]
+}
+
+// =====================================================================================================
+// PHÂN HỆ MUA VẬT TƯ: BCH đề nghị → CHT duyệt → Cán bộ VT lên đơn hàng → Kế toán VT lấy báo giá, lập bảng so
+// sánh → PTGĐ thường trực duyệt → Cán bộ VT đặt hàng → BCH báo số lượng đã nhận → Cán bộ VT lên công nợ
+// từng đợt → Phòng kế toán thanh toán. Dự án dùng chung Project của DT-CP; xoá dự án bị chặn (Restrict)
+// nếu đã có chứng từ mua vật tư. Tên người thao tác lưu dạng chữ (không khoá ngoại) để xoá user không mất lịch sử.
+// =====================================================================================================
+
+// Thành viên Ban Chỉ Huy của dự án (giám sát / chỉ huy trưởng chỉ thấy & thao tác trên dự án mình thuộc)
+model ProcMember {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+
+  @@unique([projectId, userId])
+}
+
+model Supplier {
+  id          String         @id @default(cuid())
+  name        String
+  taxCode     String         @default("")
+  address     String         @default("")
+  contact     String         @default("") // Người liên hệ
+  phone       String         @default("")
+  email       String         @default("")
+  bankAccount String         @default("")
+  bankName    String         @default("")
+  note        String         @default("")
+  createdAt   DateTime       @default(now())
+  quotations  Quotation[]
+  receipts    GoodsReceipt[]
+  payables    Payable[]
+}
+
+// Phiếu đề nghị mua vật tư (mỗi đợt) do BCH lập
+model MaterialRequest {
+  id             String                @id @default(cuid())
+  code           String                @unique // YC26-0001
+  projectId      String
+  project        Project               @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  title          String                @default("") // VD "Đợt 3 - thép móng block B"
+  neededDate     DateTime? // Ngày cần hàng tại công trình
+  note           String                @default("")
+  contractNo     String                @default("") // Số hợp đồng (in trên Giấy đề xuất vật tư)
+  category       String                @default("") // Hạng mục
+  area           String                @default("") // Khu vực thi công
+  status         String                @default("DRAFT") // DRAFT | SUBMITTED | APPROVED | REJECTED
+  createdById    String
+  createdByName  String
+  submittedAt    DateTime?
+  approvedByName String                @default("")
+  approvedAt     DateTime?
+  rejectReason   String                @default("")
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  items          MaterialRequestItem[]
+}
+
+model MaterialRequestItem {
+  id         String              @id @default(cuid())
+  requestId  String
+  request    MaterialRequest     @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  resourceId String? // vật tư trong TH Vật Tư của dự án (để đối chiếu khối lượng BOQ); null = vật tư ngoài danh mục
+  name       String
+  spec       String              @default("") // Quy cách / chủng loại
+  unit       String              @default("")
+  quantity   Float
+  note       String              @default("")
+  orderIndex Int                 @default(0)
+  // Khối lượng tham chiếu in trên Giấy đề xuất vật tư (BCH tự nhập, null = để trống)
+  contractQty Float? // Tổng KL hợp đồng
+  finalQty    Float? // Tổng KL dự kiến quyết toán (không gồm hao hụt)
+  forecastQty Float? // Tổng KL dự trù khi hoàn thành dự án
+  poItems    PurchaseOrderItem[]
+}
+
+// Đơn hàng do cán bộ vật tư lên từ các dòng đề nghị đã duyệt (cùng 1 dự án)
+model PurchaseOrder {
+  id              String              @id @default(cuid())
+  code            String              @unique // DH26-0001
+  projectId       String
+  project         Project             @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  title           String              @default("")
+  deliveryPlace   String              @default("")
+  note            String              @default("")
+  status          String              @default("DRAFT") // DRAFT | QUOTING | PENDING | APPROVED | ORDERED | DONE | CANCELLED
+  createdById     String
+  createdByName   String
+  submittedAt     DateTime? // ngày trình PTGĐ
+  submittedByName String              @default("")
+  approvedByName  String              @default("")
+  approvedAt      DateTime?
+  approvalNote    String              @default("")
+  rejectReason    String              @default("") // lý do PTGĐ trả lại lần gần nhất
+  orderedAt       DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  items           PurchaseOrderItem[]
+  quotations      Quotation[]
+  receipts        GoodsReceipt[]
+}
+
+model PurchaseOrderItem {
+  id              String               @id @default(cuid())
+  orderId         String
+  order           PurchaseOrder        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  requestItemId   String?
+  requestItem     MaterialRequestItem? @relation(fields: [requestItemId], references: [id], onDelete: SetNull)
+  name            String
+  spec            String               @default("")
+  unit            String               @default("")
+  quantity        Float
+  note            String               @default("")
+  orderIndex      Int                  @default(0)
+  selectedQuoteId String? // báo giá (nhà cung cấp) được chọn cho dòng này trong bảng so sánh
+  quoteLines      QuotationLine[]
+  receiptLines    GoodsReceiptLine[]
+}
+
+// Báo giá của 1 nhà cung cấp cho 1 đơn hàng (1 cột trong bảng so sánh)
+model Quotation {
+  id            String          @id @default(cuid())
+  orderId       String
+  order         PurchaseOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  supplierId    String
+  supplier      Supplier        @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  quoteDate     DateTime        @default(now())
+  vatRate       Float           @default(0.1)
+  deliveryTerms String          @default("") // thời gian / điều kiện giao hàng
+  paymentTerms  String          @default("")
+  note          String          @default("")
+  lines         QuotationLine[]
+
+  @@unique([orderId, supplierId])
+}
+
+model QuotationLine {
+  id          String            @id @default(cuid())
+  quotationId String
+  quotation   Quotation         @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  itemId      String
+  item        PurchaseOrderItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  unitPrice   Float // đơn giá TRƯỚC VAT; 0 = NCC không báo giá dòng này
+
+  @@unique([quotationId, itemId])
+}
+
+// Phiếu nhận hàng tại công trình (BCH báo lại số lượng thực nhận theo từng lần giao)
+model GoodsReceipt {
+  id             String             @id @default(cuid())
+  code           String             @unique // NH26-0001
+  orderId        String
+  order          PurchaseOrder      @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  supplierId     String
+  supplier       Supplier           @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  receivedDate   DateTime
+  deliveryNoteNo String             @default("") // số phiếu giao hàng / biên bản của NCC
+  note           String             @default("")
+  createdById    String
+  createdByName  String
+  createdAt      DateTime           @default(now())
+  lines          GoodsReceiptLine[]
+}
+
+model GoodsReceiptLine {
+  id          String            @id @default(cuid())
+  receiptId   String
+  receipt     GoodsReceipt      @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  itemId      String
+  item        PurchaseOrderItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  quantity    Float
+  note        String            @default("")
+  payableLine PayableLine?
+}
+
+// Công nợ từng đợt (đề nghị thanh toán) cho 1 nhà cung cấp tại 1 dự án, gửi phòng kế toán
+model Payable {
+  id            String        @id @default(cuid())
+  code          String        @unique // CN26-0001
+  supplierId    String
+  supplier      Supplier      @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  projectId     String
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  title         String        @default("")
+  dueDate       DateTime?
+  note          String        @default("")
+  periodFrom    DateTime? // Đợt thanh toán: từ ngày (null = ngày nhận hàng sớm nhất)
+  periodTo      DateTime? // đến ngày (null = ngày nhận hàng muộn nhất)
+  invoiceAdjust Float         @default(0) // "Cân đối đủ hóa đơn" (đ, gồm VAT, có thể âm) để khớp số trên hoá đơn NCC
+  advanceDeduct Float         @default(0) // Trừ tạm ứng (C) trên Bảng kê chi tiết công nợ
+  status        String        @default("DRAFT") // DRAFT | SENT | PARTIAL | PAID
+  createdById   String
+  createdByName String
+  sentAt        DateTime?
+  createdAt     DateTime      @default(now())
+  lines         PayableLine[]
+  payments      Payment[]
+}
+
+// Dòng công nợ = 1 dòng nhận hàng (mỗi dòng nhận hàng chỉ vào công nợ 1 lần); đơn giá/VAT chốt tại lúc lập
+model PayableLine {
+  id            String           @id @default(cuid())
+  payableId     String
+  payable       Payable          @relation(fields: [payableId], references: [id], onDelete: Cascade)
+  receiptLineId String           @unique
+  receiptLine   GoodsReceiptLine @relation(fields: [receiptLineId], references: [id], onDelete: Restrict)
+  quantity      Float
+  unitPrice     Float // trước VAT
+  vatRate       Float
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  payableId     String
+  payable       Payable  @relation(fields: [payableId], references: [id], onDelete: Cascade)
+  amount        Float
+  paidDate      DateTime
+  note          String   @default("") // số UNC / hình thức chi
+  createdByName String
+  createdAt     DateTime @default(now())
+}
+
+// Nhật ký thao tác (ai, lúc nào, làm gì) trên từng chứng từ mua vật tư
+model ProcLog {
+  id        String   @id @default(cuid())
+  entity    String // REQ | PO | RCV | PAY
+  entityId  String
+  action    String
+  note      String   @default("")
+  userName  String
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+}
+
+// ---- Tính toán thiết bị thi công (TH Thiết Bị → nút "Tính toán thiết bị") ----
+// Danh mục cấu kiện thiết bị dùng chung mọi dự án: giá thuê / ngày (hoặc giá mua), trọng lượng (tính vận chuyển),
+// giá mua + % hao hụt (tính chi phí mất mát). Giá theo từng nhà cung cấp; giá dùng = giá cao nhất trừ khi người dùng tự đặt.
+model EquipItem {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  name           String
+  unit           String
+  category       String // nhóm hiển thị: "Chống sàn" | "Bao che" | "An toàn"
+  mode           String   @default("RENT") // RENT = thuê theo ngày | BUY = mua (vật tư tiêu hao)
+  weight         Float    @default(0) // kg / đơn vị
+  supplierPrices String   @default("{}") // JSON {tên NCC: giá}
+  price          Float    @default(0) // giá đang dùng (thuê: đ/ngày; mua: đ/đơn vị)
+  priceManual    Boolean  @default(false) // true = người dùng tự đặt giá; false = giá cao nhất các NCC
+  buyPrice       Float    @default(0) // giá mua mới (tính hao hụt)
+  lossPct        Float    @default(0) // % hao hụt (0.2 = 0,2%)
+  orderIndex     Int      @default(0)
+  updatedBy      String   @default("")
+  updatedAt      DateTime @updatedAt
+}
+
+// 1 bản tính thiết bị của dự án (chống sàn / bao che / an toàn): thông số nhập (JSON) + đầu mục lớn ở TH Thiết Bị chứa kết quả
+model EquipCalc {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kind       String // SHORING | FACADE | SAFETY
+  name       String
+  params     String   @default("{}")
+  groupId    String? // VtGroup (kind TB) chứa các dòng kết quả
+  ncGroupId  String? // VtGroup (kind NC) ở TH Nhân Công chứa các dòng nhân công của bản tính
+  orderIndex Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+// ===================== ĐỆ TRÌNH GIÁ ĐỘI (nội bộ phòng ĐT-KS-TT) =====================
+// BCH gửi file Excel đề xuất đơn giá tổ đội → QSTT tải lên (app đọc file) → kiểm tra, ghi chú → trình 1 trong 3 Trưởng phòng
+// theo hạng mục → TP duyệt từng dòng (sửa đơn giá) rồi duyệt / không duyệt cả hồ sơ → trả về QSTT → QSTT gửi mail kết quả.
+model PriceSubmission {
+  id           String      @id @default(cuid())
+  code         String      @unique // GD26-0001
+  kind         String // IN = Đơn giá đội trình duyệt (trong HĐ) | OUT = Đề xuất đơn giá ngoài HĐ, phụ lục
+  contractId   String? // hợp đồng (DT-CP) của hồ sơ — bắt buộc khi trình, trừ khi chọn "Chưa có DT-CP, bổ sung sau"
+  contract     CostContract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  totalFormulas String     @default("{}") // công thức dòng TỔNG CỘNG: {cdtAmount|baseAmount|siteAmount|apprAmount: "=SUM(...)"}
+  totalAmounts  String     @default("{}") // tổng cộng đã tính (kể cả công thức sửa tay) lúc lưu: {cdt, base, site, appr} — danh sách / PDF / Excel dùng
+  dtcpLater    Boolean     @default(false) // QSTT chọn "Chưa có DT-CP — bổ sung sau": vẫn trình/duyệt được, QSTT còn việc bổ sung DT-CP
+  crewName     String      @default("") // tên tổ đội đề xuất (trống = chưa có đội)
+  revision     Int         @default(1) // lần trình: 1, 2, 3...
+  parentId     String? // hồ sơ lần trình trước (trình lại)
+  imported     Boolean     @default(false) // nhập từ hồ sơ cũ ĐÃ DUYỆT (ngoài phần mềm) để ghi sổ giá các đợt trước
+  // Thông tin đầu file
+  projectName  String      @default("") // CÔNG TRÌNH
+  siteId       String? // DANH MỤC DỰ ÁN (bắt buộc khi trình; có hợp đồng thì theo dự án của hợp đồng) — projectName/projectCode = tên/mã chuẩn
+  site         ProjectSite? @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  contractNo   String      @default("") // THUỘC HỢP ĐỒNG VỚI CĐT SỐ
+  projectCode  String      @default("") // MÃ SỐ DỰ ÁN
+  itemName     String      @default("") // HẠNG MỤC (trong file)
+  quoteStatus  String      @default("") // TÌNH TRẠNG BÁO GIÁ (chỉ mẫu ngoài HĐ)
+  batch        String      @default("") // ĐỢT
+  batchDate    String      @default("") // (Ngày ...) của đợt, giữ nguyên chữ trong file
+  // File gốc (để xuất lại Excel đúng mẫu kèm kết quả duyệt)
+  fileName     String      @default("")
+  fileData     Bytes?
+  fileKey     String? // file gốc nằm ở KHO FILE (src/lib/file-store.ts) — từ 23/11/2026 fileData để trống
+  fileFromId   String? // file nhiều sheet: chỉ lưu 1 bản file gốc ở hồ sơ đầu tiên, các hồ sơ khác trỏ tới hồ sơ đó
+  sheetName    String      @default("")
+  colMap       String      @default("{}") // JSON: field -> số cột trong sheet
+  headRows     String      @default("{}") // JSON: field đầu file -> số dòng
+  // Luồng duyệt
+  category     String      @default("") // KC | HTPQ | HTKV — hạng mục phân cho Trưởng phòng (QSTT chọn khi trình)
+  status       String      @default("DRAFT") // DRAFT | SUBMITTED | APPROVED | REJECTED
+  qsNote       String      @default("") // ghi chú / ý kiến của QSTT
+  tpNote       String      @default("") // ý kiến của Trưởng phòng
+  createdById  String
+  createdByName String
+  submittedAt  DateTime?
+  reviewedByName String    @default("")
+  reviewedAt   DateTime?
+  mailTo       String      @default("") // mail đã gửi gần nhất (để điền sẵn lần sau)
+  mailSentAt   DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  lines        PriceLine[]
+
+  @@index([status])
+}
+
+model PriceLine {
+  id           String          @id @default(cuid())
+  submissionId String
+  submission   PriceSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  orderIndex   Int
+  sourceRow    Int             @default(0) // dòng trong sheet Excel gốc
+  level        String          @default("ITEM") // GROUP (A, B...) | SUB (I, II...) | ITEM | NOTE (dòng chữ, VD "THEO HỢP ĐỒNG SỐ…")
+  stt          String          @default("")
+  content      String          @default("")
+  unit         String          @default("")
+  qty          Float? // Khối lượng hợp đồng
+  cdtPrice     Float? // Chủ đầu tư: đơn giá (NC + VT hoàn thiện)
+  cdtAmount    Float?
+  basePrice    Float? // Mẫu trong HĐ: GIÁ CƠ SỞ ĐỀ XUẤT; mẫu ngoài HĐ: Đơn giá DT-CP
+  baseAmount   Float?
+  baseNote     String          @default("")
+  siteOpinion  String          @default("") // Giá đề xuất của công trình: ý kiến (Đồng ý / Điều chỉnh) — mẫu trong HĐ
+  sitePrice    Float? // đơn giá công trình đề xuất (mẫu trong HĐ: đơn giá đề xuất lại nếu điều chỉnh)
+  siteAmount   Float?
+  siteNote     String          @default("")
+  ptOpinion    String          @default("") // Mẫu ngoài HĐ: Giá đề xuất của P.ĐT-TT
+  ptPrice      Float?
+  ptAmount     Float?
+  ptNote       String          @default("")
+  qsNote       String          @default("") // ghi chú của QSTT cho dòng
+  tpPrice      Float? // đơn giá Trưởng phòng duyệt (null = theo giá đề xuất)
+  tpOk         Boolean         @default(true) // TP đồng ý dòng này
+  tpNote       String          @default("")
+  tpAmount     Float? // thành tiền duyệt do Trưởng phòng đặt công thức (chỉ dùng khi formulas có "apprAmount")
+  lineKey      String          @default("") // dòng TH Nhân Công của DT-CP được khớp (CostLine.key); "-" = xác nhận ngoài DT-CP
+  overReason   String          @default("") // lý do vượt đơn giá / khối lượng DT-CP (QSTT bắt buộc ghi)
+  formulas     String          @default("{}") // công thức kiểu Excel của các ô số: {field: "=[[lineId|col]]*1,05"} (xem src/lib/xl-formula.ts)
+
+  @@index([submissionId])
+}
+
+// Hợp đồng = 1 DT-CP: lập trên phần mềm (source APP, projectId) hoặc nhập từ file DT-CP Excel cũ (source EXCEL).
+// Chỉ lưu các sheet TH (Nhân Công, Thầu Phụ, Vật Tư, Thiết Bị) để kiểm soát giá — không có BOQ.
+model CostContract {
+  id              String            @id @default(cuid())
+  name            String // DỰ ÁN / công trình
+  siteId          String? // DANH MỤC DỰ ÁN: gắn rồi thì name = tên chuẩn của dự án
+  site            ProjectSite? @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  area            String            @default("") // Khu vực "1".."5" (để hiện trong cây DT-CP: Khu vực → Dự án → Hợp đồng)
+  packageName     String            @default("") // GÓI THẦU
+  contractNo      String            @default("") // SỐ HĐ
+  appendixNo      String            @default("") // PHỤ LỤC (PL01, PL02...; trống = hợp đồng gốc). Phụ lục cùng dự án + số HĐ với hợp đồng gốc, mỗi phụ lục có DT-CP riêng
+  appendixOfId    String? // HỢP ĐỒNG GỐC mà phụ lục này thuộc về (id CostContract; trống = hợp đồng gốc)
+  source          String            @default("EXCEL") // EXCEL | APP
+  projectId       String? // DT-CP trên phần mềm (source APP)
+  fileName        String            @default("")
+  sheetMap        String            @default("{}") // JSON: loại sheet -> tên sheet đã chọn khi nhập
+  versions        String            @default("[]") // JSON [{n, label, approved}] các THỜI ĐIỂM của DT-CP
+  approvedVersion Int               @default(0) // thời điểm "Đã duyệt" dùng để kiểm soát giá (0 = chưa có)
+  createdById     String
+  createdByName   String
+  importedAt      DateTime          @default(now())
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  lines           CostLine[]
+  sheets          CostSheet[]
+  file            CostFile?
+  linkInfo        String            @default("[]") // JSON [{sheet, external, count, cells}]: sheet mà công thức DT-CP trỏ tới (chỉ ghi nhận để kiểm soát)
+  approvals       ApprovedPrice[]
+  matches         PriceMatch[]
+  submissions     PriceSubmission[]
+  subProposals    SubProposal[]
+  acceptances     OwnerAcceptance[]
+}
+
+// NGHIỆM THU VỚI CĐT từng đợt của 1 hợp đồng (gắn hợp đồng GỐC) — tạm thời người dùng tự nhập; sau này link hồ sơ thanh toán CĐT.
+// value = giá trị nghiệm thu ĐỢT NÀY (sau VAT, cùng gốc doanh thu DT-CP); lũy kế / doanh thu = % hoàn thành ở trang Tổng quan quản lý.
+model OwnerAcceptance {
+  id            String       @id @default(cuid())
+  contractId    String
+  contract      CostContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  period        String       @default("") // Đợt (VD "Đợt 3")
+  date          DateTime?
+  value         Float
+  note          String       @default("")
+  createdByName String       @default("")
+  createdAt     DateTime     @default(now())
+
+  @@index([contractId])
+}
+
+// File DT-CP Excel gốc của hợp đồng (để cập nhật cách hiển thị các sheet mà không phải nhập lại file)
+model CostFile {
+  id         String       @id @default(cuid())
+  contractId String       @unique
+  contract   CostContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  name       String
+  data       Bytes?
+  fileKey       String? // file ở KHO FILE (src/lib/file-store.ts); data để trống
+  createdAt  DateTime     @default(now())
+}
+
+// Bản chụp nguyên sheet DT-CP / BOQ / CHI TIẾT của file DT-CP Excel cũ (chỉ xem, để QSTT đủ 7 sheet cơ bản: DT-CP, BOQ, CHI TIẾT, TH Vật Tư, Nhân Công, Thiết Bị, Thầu Phụ)
+// rows = JSON [[giá trị ô...]...] (số hoặc chữ, không công thức); BOQ có thể nhiều sheet
+model CostSheet {
+  id         String       @id @default(cuid())
+  contractId String
+  contract   CostContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  role       String // DTCP | BOQ | CT
+  name       String // tên sheet trong file Excel
+  orderIndex Int          @default(0)
+  rows       String       @default("[]")
+  truncated  Boolean      @default(false) // sheet quá lớn: chỉ lưu phần đầu
+
+  @@index([contractId, role])
+}
+
+// 1 dòng sheet TH của DT-CP; prices = JSON {"<thời điểm>": đơn giá} ("0" = sheet chỉ có 1 cột đơn giá)
+model CostLine {
+  id         String       @id @default(cuid())
+  contractId String
+  contract   CostContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  kind       String // NC | TP | VT | TB
+  key        String // khoá ổn định qua các lần nhập (tên + ĐVT chuẩn hoá)
+  level      String       @default("ITEM") // GROUP | SUB | ITEM
+  stt        String       @default("")
+  name       String
+  unit       String       @default("")
+  qty        Float?
+  prices     String       @default("{}")
+  amount     Float?
+  note       String       @default("")
+  orderIndex Int
+  sourceRow  Int          @default(0)
+  extra      Boolean      @default(false) // dòng PHÁT SINH bổ sung từ sổ giá (không có trong DT-CP gốc) — giữ lại khi nhập lại DT-CP
+  vatPct     Float? // VAT % (dòng chi tiết do "Làm chuẩn DT-CP cũ 7 sheet" copy về: đơn giá / thành tiền là TRƯỚC VAT)
+
+  @@index([contractId, kind])
+}
+
+// Sổ giá đã duyệt: mỗi lần Trưởng phòng duyệt 1 dòng = 1 bản ghi (giá theo ĐỘI, áp dụng TỪ NGÀY DUYỆT, giữ lịch sử)
+model ApprovedPrice {
+  id             String       @id @default(cuid())
+  kind           String       @default("NC") // NC = giá đội (TH Nhân Công) | TP = giá thầu phụ (TH Thầu Phụ)
+  contractId     String
+  contract       CostContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  lineKey        String       @default("") // "" = ngoài DT-CP, chưa đối chiếu | "-" = đã xác nhận giữ ngoài DT-CP
+  name           String
+  unit           String       @default("")
+  crew           String       @default("")
+  price          Float
+  qty            Float?
+  approvedAt     DateTime
+  approvedByName String       @default("")
+  submissionId   String
+  submissionCode String       @default("")
+  revision       Int          @default(1)
+  batch          String       @default("")
+
+  @@index([contractId, lineKey])
+}
+
+// Nhớ cách khớp: dòng đề xuất (tên + ĐVT chuẩn hoá) -> dòng TH Nhân Công của hợp đồng
+model PriceMatch {
+  id         String       @id @default(cuid())
+  contractId String
+  contract   CostContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  srcKey     String
+  lineKey    String
+
+  @@unique([contractId, srcKey])
+}
+
+// ===================== TRÌNH GIÁ THẦU PHỤ =====================
+// QSTT tải "BẢNG ĐỀ XUẤT KÝ HỢP ĐỒNG THẦU PHỤ" (so sánh CĐT / cơ sở / các thầu phụ / đề xuất duyệt) → kiểm tra, trình Trưởng phòng
+// → NHÁNH A (đơn giá ≤ giá cơ sở TĐ1 HOẶC giá trị ≤ 1 tỷ): TP duyệt, Phó Tổng xem để nắm (hiệu lực khi PTG xem hoặc sau 24 giờ)
+//   NHÁNH B (còn lại): TP duyệt → Phó Tổng PHÊ DUYỆT (chỉ hiệu lực khi PTG duyệt)
+// → QSTT lên HĐ/PLHĐ gửi thầu phụ. Giá có hiệu lực ghi vào sổ giá (ApprovedPrice kind TP) theo TH Thầu Phụ của hợp đồng.
+model SubProposal {
+  id             String        @id @default(cuid())
+  code           String        @unique // TP26-0001
+  contractId     String?
+  contract       CostContract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  area           String        @default("") // Khu vực "1".."5" (bắt buộc khi trình; có hợp đồng thì theo khu vực hợp đồng)
+  projectName    String        @default("") // CÔNG TRÌNH
+  siteId         String? // DANH MỤC DỰ ÁN (bắt buộc khi chuyển QSTT / trình) — projectName/projectCode = tên/mã chuẩn
+  site           ProjectSite? @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  projectCode    String        @default("") // MÃ SỐ DỰ ÁN
+  cdtContract    String        @default("") // HỢP ĐỒNG VỚI CĐT
+  itemName       String        @default("") // HẠNG MỤC
+  bidders        String        @default("[]") // JSON [{key, name}] các thầu phụ báo giá (C1, C2...)
+  selectedBidder String        @default("") // key thầu phụ được chọn
+  subName        String        @default("") // tên thầu phụ ký hợp đồng
+  prelim         String        @default("{}") // JSON {cột: %} chi phí Prelim
+  vat            String        @default("{}") // JSON {cột: %} VAT
+  terms          String        @default("[]") // JSON [{label, cdt, base, prop, appr}] điều khoản HĐ (tiến độ, tạm ứng, thanh toán, quyết toán)
+  vatRows        String        @default("[]") // JSON [{id, label, vals:{A,B,C1..,D: số hoặc công thức "=TT*15%*8%"}}] dòng thuế bổ sung (TT = tổng cộng trước thuế của cột)
+  extraRows      String        @default("[]") // JSON [{id, stt, label, vals:{A,B,C1..,D}}] dòng chi phí thêm dưới TỔNG CỘNG
+  totalFormulas  String        @default("{}") // JSON {"v:prelim|D": "=ROUND([[v:sum|propAmount]]*6%;0)"} công thức gõ ở các dòng từ TỔNG CỘNG trở xuống (khoá = dòng|tổng cột A, B, C1.., D, H, AH, BH, S; cột duyệt R dùng chung công thức của D)
+  totalAmounts   String        @default("{}") // JSON {D: {sum, extra, prelim, beforeVat, vat, vat2, afterVat}, ...} số tổng đã tính theo công thức trên lúc lưu (cột nào có công thức mới có) — danh sách / tổng hợp / Excel dùng
+  scope         String        @default("[]") // JSON string[][] — sheet PHẠM VI CÔNG VIỆC đọc từ file lúc nhập (chỉ xem, không duyệt từng dòng)
+  fileName       String        @default("")
+  fileData       Bytes?
+  fileKey       String? // file gốc nằm ở KHO FILE (src/lib/file-store.ts) — từ 23/11/2026 fileData để trống
+  sheetName      String        @default("")
+  colMap         String        @default("{}")
+  headRows       String        @default("{}")
+  category       String        @default("") // KC | HTPQ | HTKV — Trưởng phòng duyệt
+  branch         String        @default("") // A | B (phần mềm xếp lúc trình, PTG có thể chuyển A → B)
+  branchReason   String        @default("")
+  priceMode      String        @default("") // Đơn giá: "" / TONG = giá tổng | CHITIET = chia vật tư, nhân công, thiết bị (khối thầu phụ + đề xuất)
+  isMep          Boolean       @default(false) // Trình thầu phụ MEP (cơ điện): thêm 2 cột MÃ HIỆU SẢN PHẨM (SubLine.code) + NHÃN HIỆU - XUẤT XỨ (SubLine.origin)
+  mepTemp        Boolean       @default(false) // MEP TẠM: có thêm cột THUÊ VẬT TƯ (khấu hao %): đơn giá = đơn giá vật tư × khấu hao + đơn giá nhân công (hệ số lưu ở ô "thiết bị": baseTb / propTb / bids.tb / cdtKh)
+  isNt           Boolean       @default(false) // Trình thầu phụ NỘI THẤT: cột Mã SP, Hạng mục, Hình ảnh, Mô tả vật liệu, Dài / Rộng / Cao; dòng SẢN PHẨM (level SP) gồm nhiều PHẦN VIỆC, mỗi hồ sơ chỉ trình 1 phần việc (phần việc khác = level REF, chỉ tham khảo)
+  oneQty         Boolean       @default(false) // ÁP DỤNG CHUNG 1 KHỐI LƯỢNG: KL chủ đầu tư = cơ sở = thầu phụ = đề xuất; bảng chỉ hiện 1 cột KL (không áp cho PLHĐ điều chỉnh)
+  hdtpNo         String        @default("") // Phụ lục: số HĐ thầu phụ gốc QSĐT tự gõ (khi HĐ chưa có trên hệ thống); có hdtpId thì dùng hdtpId
+  plKind         String        @default("") // Loại phụ lục: CONG_GOP (cộng gộp: 1 KL, đơn giá, thành tiền) | DIEU_CHINH (theo mẫu PLHĐ điều chỉnh) — QSĐT chọn khi trình
+  proposalType   String        @default("") // Loại đề xuất: HDTP (ký hợp đồng thầu phụ) | PL (ký phụ lục) — QSĐT chọn, dùng cho file tổng hợp đệ trình thầu phụ
+  awardForm      String        @default("") // Hình thức giao thầu: VT (giao bao vật tư) | TB (giao bao thiết bị) | NC (nhân công thuần)
+  vtValue        Float? // Tổng giá trị VẬT TƯ (bắt buộc khi giao bao thiết bị hoặc nhân công thuần)
+  tbValue        Float? // Tổng giá trị THIẾT BỊ (bắt buộc khi nhân công thuần)
+  otherValue     Float? // Tổng giá trị CHI PHÍ KHÁC (tuỳ chọn, cộng vào tổng chi phí cùng vật tư / thiết bị)
+  signedValue    Float? // PHỤ LỤC CỘNG GỘP + HĐ thầu phụ gõ tay (chưa có trên hệ thống): GIÁ TRỊ HĐ + PL ĐÃ KÝ trước phụ lục này (bắt buộc) — PLĐC = giá trị này + phụ lục này
+  hdtpId         String? // Hồ sơ HĐ THẦU PHỤ gốc mà phụ lục (proposalType = PL) thuộc về — hồ sơ HĐTP đã duyệt và có số HĐ
+  status         String        @default("DRAFT") // DRAFT | SUBMITTED (chờ TP) | PTG_PENDING (nhánh B chờ PTG) | APPROVED | REJECTED
+  qsNote         String        @default("")
+  tpNote         String        @default("")
+  ptgNote        String        @default("")
+  revision       Int           @default(1)
+  parentId       String?
+  createdById    String
+  createdByName  String
+  submittedAt    DateTime?
+  tpByName       String        @default("")
+  tpAt           DateTime?
+  ptgByName      String        @default("")
+  ptgAt          DateTime? // nhánh B: PTG duyệt / trả về; nhánh A: PTG bấm "đã xem"
+  effectiveAt    DateTime? // giá có hiệu lực từ (nhánh A: TP duyệt + 24 giờ hoặc lúc PTG xem; nhánh B: lúc PTG duyệt)
+  hdNo           String        @default("") // số HĐ / PLHĐ đã lên gửi thầu phụ
+  hdAt           DateTime?
+  mailTo         String        @default("")
+  mailSentAt     DateTime?
+  makerSeenAt    DateTime?   // QSĐT đã mở xem kết quả duyệt / không duyệt (null = chưa xem → hiện trên chuông)
+  infoRequest    String        @default("") // Trưởng phòng yêu cầu QSĐT bổ sung hồ sơ (status NEED_INFO): nội dung yêu cầu
+  infoReply      String        @default("") // QSĐT ghi chú đã bổ sung gì khi bấm Cập nhật
+  infoNotice     Boolean       @default(false) // QSĐT đã bổ sung theo yêu cầu TP → báo QSTT nắm (tắt khi QSTT mở hồ sơ)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  lines          SubLine[]
+
+  @@index([status])
+}
+
+model SubLine {
+  id         String      @id @default(cuid())
+  proposalId String
+  proposal   SubProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  orderIndex Int
+  sourceRow  Int         @default(0)
+  level      String      @default("ITEM") // GROUP | SUB | ITEM — nội thất thêm: SP = sản phẩm (gồm các dòng phần việc bên dưới, không tính tiền riêng) | REF = phần việc KHÁC, không trình lần này (chỉ tham khảo, không cộng tổng, không duyệt)
+  stt        String      @default("")
+  workName   String      @default("") // HẠNG MỤC CÔNG VIỆC
+  content    String      @default("") // NỘI DUNG CÔNG VIỆC
+  code       String      @default("") // MÃ SP (MEP: MÃ HIỆU SẢN PHẨM)
+  origin     String      @default("") // MEP: NHÃN HIỆU - XUẤT XỨ
+  unit       String      @default("")
+  dims      String      @default("") // kích thước dài × rộng × cao
+  material   String      @default("") // NỘI THẤT: MÔ TẢ VẬT LIỆU
+  dimL       String      @default("") // NỘI THẤT: kích thước DÀI / RỘNG / CAO (mm) — chữ để giữ được "Ø600", "theo bản vẽ"...
+  dimW       String      @default("")
+  dimH       String      @default("")
+  images     SubLineImage[]
+  cdtQty     Float?
+  cdtPrice   Float?
+  baseQty    Float?
+  basePrice  Float? // ĐƠN GIÁ CƠ SỞ (B) trong file
+  bids       String      @default("{}") // JSON {C1: {qty, price}, C2: ...}
+  propQty    Float? // ĐƠN GIÁ DUYỆT (D) đề xuất trong file / QSTT
+  propPrice  Float?
+  cdtVt      Float? // MEP: giá chi tiết VẬT TƯ / NHÂN CÔNG của khối CHỦ ĐẦU TƯ (cdtPrice = tổng; MEP không có thiết bị)
+  cdtNc      Float?
+  cdtKh      Float? // MEP TẠM: % thuê vật tư (khấu hao) của khối CĐT
+  noMgmt     Boolean     @default(false) // KHÔNG tính chi phí quản lý (Prelim) cho dòng này; đầu mục (GROUP / SUB) đánh dấu thì cả các dòng con bên dưới cũng được loại
+  baseVt     Float? // giá chi tiết của khối CƠ SỞ (vật tư / nhân công / thiết bị): basePrice = tổng, baseManual = true
+  baseNc     Float?
+  baseTb     Float?
+  propVt     Float? // đơn giá chi tiết VẬT TƯ / NHÂN CÔNG / THIẾT BỊ của khối ĐỀ XUẤT (chế độ giá chi tiết; propPrice = tổng 3 thành phần)
+  propNc     Float?
+  propTb     Float?
+  hdQty      Float? // PLHĐ điều chỉnh: KL theo hợp đồng gốc (trống = hạng mục mới)
+  hdPrice    Float? // PLHĐ điều chỉnh: đơn giá theo hợp đồng gốc
+  cdtHdQty   Float? // PLHĐ điều chỉnh, khối CĐT: KL / đơn giá theo hợp đồng (cdtQty, cdtPrice = điều chỉnh)
+  cdtHdPrice Float?
+  baseHdQty  Float? // PLHĐ điều chỉnh, khối cơ sở: KL / đơn giá theo hợp đồng (baseQty, basePrice = điều chỉnh)
+  baseHdPrice Float?
+  note       String      @default("")
+  lineKey    String      @default("") // dòng TH Thầu Phụ của DT-CP được khớp; "-" = ngoài DT-CP (đơn giá mới)
+  qsNote     String      @default("")
+  tpPrice    Float? // đơn giá Trưởng phòng / PTG duyệt (null = theo đề xuất)
+  tpOk       Boolean     @default(true)
+  tpNote     String      @default("")
+  formulas   String      @default("{}") // công thức kiểu Excel của các ô số (xem src/lib/xl-formula.ts)
+  baseManual Boolean     @default(false) // người dùng tự sửa ĐƠN GIÁ CƠ SỞ (B) → dùng basePrice thay vì giá DT-CP tự khớp
+  baseNote   String      @default("") // ghi chú khối cơ sở do người dùng nhập (trống = phần mềm tự ghi Đã khớp / Chưa khớp)
+
+  @@index([proposalId])
+}
+
+// Ảnh của 1 dòng trình giá thầu phụ NỘI THẤT (cột HÌNH ẢNH): lấy từ file Excel lúc nhập, hoặc QSĐT / QSTT dán / chọn file.
+// File ảnh lưu trên ổ đĩa như ảnh BOQ (src/lib/uploads.ts); hồ sơ trình lại / trình phần việc khác dùng chung file ảnh (chỉ chép dòng này).
+model SubLineImage {
+  id         String   @id @default(cuid())
+  proposalId String
+  lineId     String
+  line       SubLine  @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  fileName   String
+  mime       String   @default("image/jpeg")
+  width      Int      @default(0)
+  height     Int      @default(0)
+  orderIndex Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([lineId])
+  @@index([proposalId])
+}
+
+// ---- Trợ lý AI trong phần mềm (nút "Hỏi trợ lý"): hội thoại, đánh giá câu trả lời, phiếu yêu cầu gửi quản trị duyệt ----
+model AiChat {
+  id        String      @id @default(cuid())
+  userId    String
+  userName  String
+  page      String      @default("") // trang người dùng đang mở lúc bắt đầu hỏi
+  createdAt DateTime    @default(now())
+  messages  AiMessage[]
+  tickets   AiTicket[]
+
+  @@index([userId, createdAt])
+}
+
+model AiMessage {
+  id        String   @id @default(cuid())
+  chatId    String
+  chat      AiChat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  role      String // user | assistant
+  content   String
+  rating    Int      @default(0) // 1 = 👍, -1 = 👎, 0 = chưa đánh giá
+  createdAt DateTime @default(now())
+
+  @@index([chatId, createdAt])
+}
+
+// Phiếu yêu cầu (báo lỗi / bổ sung tính năng) do trợ lý lập sau khi người dùng đồng ý hướng xử lý. Chỉ quản trị duyệt → mới sửa code.
+model AiTicket {
+  id          String    @id @default(cuid())
+  code        String    @unique // YC26-0001
+  chatId      String?
+  chat        AiChat?   @relation(fields: [chatId], references: [id], onDelete: SetNull)
+  kind        String // BUG | FEATURE
+  title       String
+  detail      String // mô tả vấn đề / mong muốn
+  proposal    String    @default("") // hướng xử lý trợ lý đề xuất (người dùng đã đồng ý)
+  page        String    @default("")
+  userId      String
+  userName    String
+  status      String    @default("PENDING") // PENDING | APPROVED | REJECTED | DONE
+  adminNote   String    @default("")
+  decidedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  seenByUser  Boolean   @default(true) // false khi quản trị vừa xử lý mà người tạo chưa xem
+
+  @@index([status, createdAt])
+  @@index([userId])
+}
+
+// ---- Ghi chú ô (như Note/Comment của Excel) ở bảng trình giá đội (GD) / giá thầu phụ (TPH): tam giác đỏ góc ô ----
+model CellNote {
+  id        String   @id @default(cuid())
+  entity    String // GD = hồ sơ giá đội (PriceSubmission) · TPH = hồ sơ thầu phụ (SubProposal)
+  entityId  String
+  rowKey    String // mã dòng
+  colKey    String // khoá cột
+  text      String
+  userId    String
+  userName  String
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+}
+
+// DANH MỤC DỰ ÁN (23/11/2026): mỗi dự án 1 bản ghi có MÃ (ký hiệu DT-CP mới, VD "KV2.03") + tên chuẩn + các TÊN GỌI KHÁC.
+// DT-CP / hợp đồng / hồ sơ giá đội / hồ sơ thầu phụ lưu siteId; tên dự án trên các bản ghi đó luôn = tên chuẩn (đổi tên / gộp
+// dự án thì cập nhật theo — src/lib/project-site.ts) → cây Khu vực → Dự án → Hợp đồng không còn tách 2 dự án vì gõ khác 1 chữ.
+model ProjectSite {
+  id              String   @id @default(cuid())
+  code            String   @default("") // MÃ DỰ ÁN (trống = chưa có mã, VD nhà tư)
+  name            String // tên chuẩn
+  area            String   @default("") // Khu vực "1".."5"
+  cluster         String   @default("") // CỤM DỰ ÁN: mã cụm (VD KV4-SB) — Khu vực → Cụm → Dự án → Hợp đồng; trống = không thuộc cụm
+  clusterName     String   @default("") // tên cụm (VD SÂN BAY PHÚ QUỐC)
+  aliases         String   @default("[]") // JSON string[] tên gọi khác (tên cũ đã gộp vào, tên ghi trong file Excel...) — tự nhận khi gõ / đọc file
+  status          String   @default("ACTIVE") // ACTIVE | PENDING (người dùng đề nghị dự án mới, chờ quản trị / QSTT xác nhận)
+  createdByName   String   @default("")
+  confirmedByName String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  projects        Project[]
+  contracts       CostContract[]
+  submissions     PriceSubmission[]
+  subProposals    SubProposal[]
+  siteContracts   SiteContract[]
+
+  @@index([code])
+  @@index([cluster])
+}
+
+// HỢP ĐỒNG THEO BẢNG TT DỰ ÁN (cấp dưới dự án): dòng "HĐ số … - nội dung", mã VD KV4-SB-02.04 — danh mục tham chiếu, nạp lại mỗi lần nhập file.
+// Hồ sơ (hợp đồng DT-CP, giá đội, thầu phụ) nhận mã hợp đồng qua SỐ HĐ (noKey) — không gắn khoá ngoại.
+model SiteContract {
+  id         String      @id @default(cuid())
+  siteId     String
+  site       ProjectSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  code       String      @default("") // mã hợp đồng (cột G, trống thì F), VD KV4-SB-02.04
+  contractNo String      @default("") // số HĐ như ghi trong file, VD 324/2026/HĐ/PCC-TMN
+  noKey      String      @default("") // khoá so số HĐ "324/2026/PCC" (contractKey) — trống nếu chưa có số
+  title      String      @default("") // nội dung sau dấu "-"
+  category   String      @default("") // hạng mục KC / HT / MEP
+  company    String      @default("") // công ty TMN / QN / TN
+  orderIndex Int         @default(0)
+
+  @@index([siteId])
+  @@index([noKey])
+}

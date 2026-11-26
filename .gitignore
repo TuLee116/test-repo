@@ -39,3 +39,35 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# database
+*.db
+*.db-journal
+
+# ảnh tải lên + kho file gốc Excel (chạy trên máy)
+/uploads
+/files
+
+# bản sao DB trên máy (có dữ liệu thật), công cụ AI cục bộ
+dev.db.*
+*.sqlite3
+/.agents/
+/.claude/
+/.windsurf/
+skills-lock.json
+!.env.example
+
+# sao lưu, nhật ký lỗi trên máy
+/backups/
+/logs/
+*.log
+
+# Không đưa dữ liệu thật lên GitHub
+deploy/seed-data.*
+*.db
+*.db.gz
+*.jsonl.gz
+uploads/
+backups/

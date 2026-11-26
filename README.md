@@ -1,53 +1,28 @@
-# tmn-web — bản dựng lại Khối Kinh Tế Kế Hoạch (Tân Minh Nhân)
+# DT-CP Online — Tân Minh Nhân
 
-Next.js 15 (App Router) + Tailwind CSS 4. Dữ liệu lấy từ web cũ ngày 23/11/2026, nằm trong `data/` (JSON).
-**Chứa dữ liệu nội bộ thật — không đưa lên kho mã công khai.**
+Web app nội bộ lập **Dự toán – Chi phí (DT-CP)** cho các gói thầu xây dựng: nhập BOQ của chủ đầu tư từ Excel, tự gợi ý định mức, chiết tính đơn giá, tổng hợp vật tư / nhân công / thiết bị / thầu phụ, lập bảng DT-CP và xuất Excel có công thức.
 
-## Chạy
+**Tài liệu đầy đủ cho IT: [docs/BAN-GIAO.md](docs/BAN-GIAO.md)** (kiến trúc, nghiệp vụ, công thức, cài đặt, khôi phục dữ liệu, triển khai, hướng tích hợp).
 
+## Chạy nhanh trên máy
+
+```bash
+npm ci
+cp .env.example .env                                   # điền AUTH_SECRET, SEED_ADMIN_PASSWORD
+npx prisma generate --config prisma7.config.ts
+# Dữ liệu: chép database.db (bản sao lưu bàn giao) thành dev.db và thư mục uploads/ vào đây
+#          — hoặc tạo DB trống: npx prisma migrate deploy --config prisma7.config.ts && npm run db:refresh
+npx prisma migrate deploy --config prisma7.config.ts
+npm run dev                                            # http://localhost:3000
 ```
-npm install
-npm run dev      # http://localhost:3000
-```
 
-Bản chạy thật: `npm run build && npm start`.
+## Công nghệ
 
-## Các trang đã có (chỉ xem)
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Prisma 7 + SQLite (better-sqlite3) · NextAuth v5 · ExcelJS · sharp.
 
-| Trang | Nội dung |
-|---|---|
-| `/projects` | Tổng quan DT-CP: lọc theo khu vực / dự án / người thực hiện, doanh thu – chi phí theo khu vực, cơ cấu chi phí |
-| `/projects/[id]` | Bảng DT-CP, BOQ, lịch sử duyệt |
-| `/gia-doi`, `/gia-doi/[id]` | 411 hồ sơ giá đội: tìm kiếm, lọc trạng thái/loại, chi tiết từng dòng |
-| `/gia-doi/thau-phu`, `/gia-doi/thau-phu/[id]` | 71 hồ sơ trình giá thầu phụ, giá các nhà thầu, điều khoản |
-| `/gia-doi/hop-dong`, `/gia-doi/hop-dong/[id]` | 96 hợp đồng: sổ giá đội theo các thời điểm, hồ sơ giá đội liên quan |
-| `/catalog` | 2.857 định mức, tìm theo mã/tên, xem hao phí |
-| `/admin/users` | Người dùng và vai trò trình giá |
+## Thư mục chính
 
-Menu bên trái giống bản cũ (DT-CP theo khu vực → dự án → hợp đồng). Các mục chưa dựng (mua vật tư, kiểm tra bill, duyệt định mức, làm nhẹ Excel…) hiện trang "chưa được dựng lại".
-
-## Cấu trúc
-
-- `lib/data.ts` — **toàn bộ việc đọc dữ liệu**, kèm kiểu TypeScript cho từng loại bản ghi. Khi chuyển sang cơ sở dữ liệu (ví dụ Prisma + PostgreSQL), chỉ cần thay các hàm trong file này.
-- `lib/format.ts` — định dạng số kiểu Việt Nam, nhãn trạng thái.
-- `components/` — menu, bảng, thẻ số liệu.
-- `data/` — tạo bởi `tools/build_webdata.py` từ gói `dttt-package`.
-
-## Chưa có
-
-- Đăng nhập, phân quyền.
-- Mọi thao tác tạo / sửa / duyệt / xoá, gửi mail, xuất Excel/PDF.
-- Phân hệ Mua vật tư (dữ liệu cũ chỉ có 1 đơn hàng, 1 đề nghị).
-
-## Bảo vệ bằng mật khẩu
-
-`middleware.ts` yêu cầu đăng nhập (HTTP Basic) cho toàn bộ web. Đặt biến môi trường:
-
-- `BASIC_AUTH_USER`
-- `BASIC_AUTH_PASSWORD`
-
-Khi chạy bản production mà chưa đặt hai biến này, web sẽ trả lỗi 503 thay vì để lộ dữ liệu. Khi chạy `npm run dev` mà không đặt thì không hỏi mật khẩu.
-
-## Triển khai Railway
-
-Railway tự nhận Next.js: build bằng `npm run build`, chạy bằng `npm start` (Next đọc biến `PORT`). Nhớ đặt hai biến mật khẩu ở trên trong mục Variables của service.
+- `src/app` — trang & API · `src/lib` — logic nghiệp vụ (`actions.ts` = mọi thao tác ghi)
+- `prisma/schema.prisma` — mô hình dữ liệu (có chú thích) · `prisma/migrations` — migration
+- `scripts/` — script vận hành · `data/source/` — Excel danh mục định mức gốc
+- `Dockerfile`, `scripts/railway-start.sh` — đóng gói & khởi động bản chạy thật · `docs/` — tài liệu

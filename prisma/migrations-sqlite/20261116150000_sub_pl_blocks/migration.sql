@@ -1,0 +1,4 @@
+ALTER TABLE "SubLine" ADD COLUMN "cdtHdQty" REAL;
+ALTER TABLE "SubLine" ADD COLUMN "cdtHdPrice" REAL;
+ALTER TABLE "SubLine" ADD COLUMN "baseHdQty" REAL;
+ALTER TABLE "SubLine" ADD COLUMN "baseHdPrice" REAL;

@@ -1,0 +1,1 @@
+ALTER TABLE "PriceSubmission" ADD COLUMN "dtcpLater" BOOLEAN NOT NULL DEFAULT false;

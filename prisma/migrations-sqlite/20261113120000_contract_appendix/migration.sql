@@ -1,0 +1,1 @@
+ALTER TABLE "CostContract" ADD COLUMN "appendixNo" TEXT NOT NULL DEFAULT '';

@@ -1,0 +1,4 @@
+ALTER TABLE "SubProposal" ADD COLUMN "awardForm" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "SubProposal" ADD COLUMN "vtValue" REAL;
+ALTER TABLE "SubProposal" ADD COLUMN "tbValue" REAL;
+ALTER TABLE "SubProposal" ADD COLUMN "hdtpId" TEXT;

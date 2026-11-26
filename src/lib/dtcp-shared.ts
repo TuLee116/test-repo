@@ -1,0 +1,20 @@
+// Phần dùng chung được cho cả client component (không import prisma).
+export const LINK_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "— Nhập tay —" },
+  { value: "boq_quoted_vat", label: "Giá báo CĐT sau VAT (sheet BOQ × (1 + VAT))" },
+  { value: "boq_quoted", label: "Giá báo CĐT trước VAT (sheet BOQ)" },
+  { value: "vl", label: "Tổng Vật tư (TH Vật Tư)" },
+  { value: "nc", label: "Tổng Nhân công (TH Nhân Công)" },
+  { value: "m", label: "Tổng Thiết bị/Máy (TH Thiết Bị)" },
+  { value: "subcontractor", label: "Tổng Thầu phụ (TH Thầu Phụ)" },
+  { value: "vts:A", label: "TH Vật Tư — tổng mục A (Hợp Nhân)" },
+  { value: "vts:B", label: "TH Vật Tư — tổng mục B (đối tác khác)" },
+  { value: "nts:A", label: "TH Nhân Công — tổng mục A (Giao khoán)" },
+  { value: "nts:B", label: "TH Nhân Công — tổng mục B (Khác)" },
+  { value: "tbs:A", label: "TH Thiết Bị — tổng mục A (Thi công)" },
+  { value: "tbs:B", label: "TH Thiết Bị — tổng mục B (Khác)" },
+  { value: "nck", label: "Nhân công khác (CHI TIẾT)" },
+  { value: "tbk", label: "Thiết bị theo % nhân công (CHI TIẾT)" },
+  { value: "mmtb", label: "MMTB + Vật tư phụ (CHI TIẾT)" },
+  { value: "other", label: "Tổng Chi phí khác" },
+];

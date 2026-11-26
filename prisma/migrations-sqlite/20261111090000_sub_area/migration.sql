@@ -1,0 +1,1 @@
+ALTER TABLE "SubProposal" ADD COLUMN "area" TEXT NOT NULL DEFAULT '';

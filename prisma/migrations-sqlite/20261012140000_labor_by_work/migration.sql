@@ -1,0 +1,1 @@
+ALTER TABLE "Project" ADD COLUMN "laborByWork" BOOLEAN NOT NULL DEFAULT false;

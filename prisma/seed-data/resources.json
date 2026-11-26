@@ -1,0 +1,826 @@
+[
+  {
+    "code": "BTM100",
+    "name": "Bê tông M100, B7.5, độ sụt 12±2",
+    "unit": "m3",
+    "unitPrice": 1314814.8148148134,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BTM150",
+    "name": "Bê tông M150, B10, độ sụt 12±2",
+    "unit": "m3",
+    "unitPrice": 1361111.11111111,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BTM200",
+    "name": "Bê tông M200, B15, độ sụt 12±2",
+    "unit": "m3",
+    "unitPrice": 1407407.4074074067,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BTM250",
+    "name": "Bê tông M250, B20, độ sụt 12±2",
+    "unit": "m3",
+    "unitPrice": 1453703.7037037036,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BTM300",
+    "name": "Bê tông M300, B22.5, độ sụt 12±2",
+    "unit": "m3",
+    "unitPrice": 1500000,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BTM350",
+    "name": "Bê tông M350, B25, độ sụt 12±2",
+    "unit": "m3",
+    "unitPrice": 1546296.2962962962,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BTM400",
+    "name": "Bê tông M400, B30, độ sụt 12±2",
+    "unit": "m3",
+    "unitPrice": 1592592.5925925924,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BTM450",
+    "name": "Bê tông M450, B35, độ sụt 12±2",
+    "unit": "m3",
+    "unitPrice": 1638888.8888888888,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BTM500",
+    "name": "Bê tông M500, B40, độ sụt 12±2",
+    "unit": "m3",
+    "unitPrice": 1708148.148148147,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BTM550",
+    "name": "Bê tông M550, B42.5, độ sụt 12±2",
+    "unit": "m3",
+    "unitPrice": 1777407.4074074053,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BTM600",
+    "name": "Bê tông M600, B45, độ sụt 12±2",
+    "unit": "m3",
+    "unitPrice": 1846666.6666666635,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BTM650",
+    "name": "Bê tông M650, B50, độ sụt 12±2",
+    "unit": "m3",
+    "unitPrice": 1915925.9259259219,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BTM700",
+    "name": "Bê tông M700, B55, độ sụt 12±2",
+    "unit": "m3",
+    "unitPrice": 1985185.18518518,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BTM750",
+    "name": "Bê tông M750, B58, độ sụt 12±2",
+    "unit": "m3",
+    "unitPrice": 2060185.185185185,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BTM800",
+    "name": "Bê tông M800, B60, độ sụt 12±2",
+    "unit": "m3",
+    "unitPrice": 2135185.18518519,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BT.Đs",
+    "name": "Tăng mỗi cấp độ sụt (+/-2cm)",
+    "unit": "m3",
+    "unitPrice": 18518.5185185185,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BT.R7",
+    "name": "Phụ gia đông kết nhanh R7",
+    "unit": "m3",
+    "unitPrice": 60185.1851851852,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BT.Cabom1",
+    "name": "Phí bơm bê tông - Dầm sàn",
+    "unit": "m3",
+    "unitPrice": 104629.62962963,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "BT.Cabom2",
+    "name": "Phí bơm bê tông - Cột vách, cầu thang",
+    "unit": "m3",
+    "unitPrice": 124500,
+    "sourceType": "VT",
+    "groupLabel": "BÊ TÔNG"
+  },
+  {
+    "code": "Thepd<10",
+    "name": "Thép xây dựng Fi<10 (CB240-T)",
+    "unit": "kg",
+    "unitPrice": 15046.296296296296,
+    "sourceType": "VT",
+    "groupLabel": "THÉP XÂY DỰNG"
+  },
+  {
+    "code": "Thepd10-18",
+    "name": "Thép xây dựng 10≤Fi≤18 (CB500-V)",
+    "unit": "kg",
+    "unitPrice": 14999.999999999998,
+    "sourceType": "VT",
+    "groupLabel": "THÉP XÂY DỰNG"
+  },
+  {
+    "code": "Thepd>18",
+    "name": "Thép xây dựng Fi>18 (CB500-V)",
+    "unit": "kg",
+    "unitPrice": 14999.999999999998,
+    "sourceType": "VT",
+    "groupLabel": "THÉP XÂY DỰNG"
+  },
+  {
+    "code": "Gthe.n.55.90.200",
+    "name": "Gạch thẻ đặc nung 55x90x200mm",
+    "unit": "viên",
+    "unitPrice": 2352,
+    "sourceType": "VT",
+    "groupLabel": "GẠCH XÂY"
+  },
+  {
+    "code": "Gthe.kn.190.90.55",
+    "name": "Gạch thẻ không nung 190x90x55mm",
+    "unit": "viên",
+    "unitPrice": 1296,
+    "sourceType": "VT",
+    "groupLabel": "GẠCH XÂY"
+  },
+  {
+    "code": "Grong.kn.190.135.95",
+    "name": "Gạch rỗng không nung 190x135x95mm",
+    "unit": "viên",
+    "unitPrice": 2824,
+    "sourceType": "VT",
+    "groupLabel": "GẠCH XÂY"
+  },
+  {
+    "code": "Xi.PCB40",
+    "name": "Xi măng PCB40",
+    "unit": "kg",
+    "unitPrice": 1777.7777777777776,
+    "sourceType": "VT",
+    "groupLabel": "CÁT, ĐÁ, XI MĂNG"
+  },
+  {
+    "code": "CatXay",
+    "name": "Cát xây",
+    "unit": "m3",
+    "unitPrice": 490740.74074074073,
+    "sourceType": "VT",
+    "groupLabel": "CÁT, ĐÁ, XI MĂNG"
+  },
+  {
+    "code": "CatTo",
+    "name": "Cát tô",
+    "unit": "m3",
+    "unitPrice": 490740.74074074073,
+    "sourceType": "VT",
+    "groupLabel": "CÁT, ĐÁ, XI MĂNG"
+  },
+  {
+    "code": "LuoiCN",
+    "name": "Lưới chống nứt",
+    "unit": "m2",
+    "unitPrice": 14805,
+    "sourceType": "VT",
+    "groupLabel": "CÁT, ĐÁ, XI MĂNG"
+  },
+  {
+    "code": "HiltiRE100",
+    "name": "Hilti RE100",
+    "unit": "Tuýp",
+    "unitPrice": 481818.181818182,
+    "sourceType": "VT",
+    "groupLabel": "CÁT, ĐÁ, XI MĂNG"
+  },
+  {
+    "code": "TB.Vk.Nh",
+    "name": "Cốp pha nhôm định hình (bao gồm: coffa nhôm, cây chống, phụ kiện)",
+    "unit": "m2",
+    "unitPrice": 135000,
+    "sourceType": "TB",
+    "groupLabel": "VÁN KHUÔN"
+  },
+  {
+    "code": "TB.Vk.Van",
+    "name": "Ván phủ phim dày 15mm",
+    "unit": "m2",
+    "unitPrice": 105756.11892462202,
+    "sourceType": "TB",
+    "groupLabel": "VÁN KHUÔN"
+  },
+  {
+    "code": "TB.San.Ham",
+    "name": "Thiết bị, cây chống ván khuôn dầm, sàn (hầm)",
+    "unit": "m2",
+    "unitPrice": 85000,
+    "sourceType": "TB",
+    "groupLabel": "CÂY CHỐNG VÁN KHUÔN (TẠM TÍNH)"
+  },
+  {
+    "code": "TB.Mong",
+    "name": "Thiết bị, cây chống ván khuôn đài móng, giằng móng (hầm)",
+    "unit": "m2",
+    "unitPrice": 35000,
+    "sourceType": "TB",
+    "groupLabel": "CÂY CHỐNG VÁN KHUÔN (TẠM TÍNH)"
+  },
+  {
+    "code": "TB.L.Mong",
+    "name": "Thiết bị, cây chống ván khuôn bê tông lót móng, giằng móng",
+    "unit": "m2",
+    "unitPrice": 35000,
+    "sourceType": "TB",
+    "groupLabel": "CÂY CHỐNG VÁN KHUÔN (TẠM TÍNH)"
+  },
+  {
+    "code": "TB.BeNuoc",
+    "name": "Thiết bị, cây chống ván khuôn bể XLTN, bể PCCC, bể sinh hoạt",
+    "unit": "m2",
+    "unitPrice": 35000,
+    "sourceType": "TB",
+    "groupLabel": "CÂY CHỐNG VÁN KHUÔN (TẠM TÍNH)"
+  },
+  {
+    "code": "TB.Ramd",
+    "name": "Thiết bị, cây chống ván khuôn ram dốc",
+    "unit": "m2",
+    "unitPrice": 35000,
+    "sourceType": "TB",
+    "groupLabel": "CÂY CHỐNG VÁN KHUÔN (TẠM TÍNH)"
+  },
+  {
+    "code": "TB.Cauthang",
+    "name": "Thiết bị, cây chống ván khuôn sàn thang bộ",
+    "unit": "m2",
+    "unitPrice": 85000,
+    "sourceType": "TB",
+    "groupLabel": "CÂY CHỐNG VÁN KHUÔN (TẠM TÍNH)"
+  },
+  {
+    "code": "TB.Hoboi",
+    "name": "Thiết bị, cây chống ván khuôn hồ bơi, cảnh quan",
+    "unit": "m2",
+    "unitPrice": 35000,
+    "sourceType": "TB",
+    "groupLabel": "CÂY CHỐNG VÁN KHUÔN (TẠM TÍNH)"
+  },
+  {
+    "code": "TB.San.De",
+    "name": "Thiết bị, cây chống ván khuôn dầm, sàn khối đế (<6m)",
+    "unit": "m2",
+    "unitPrice": 110000,
+    "sourceType": "TB",
+    "groupLabel": "CÂY CHỐNG VÁN KHUÔN (TẠM TÍNH)"
+  },
+  {
+    "code": "TB.San.Than",
+    "name": "Thiết bị, cây chống ván khuôn dầm, sàn tầng kỹ thuật, tầng mái",
+    "unit": "m2",
+    "unitPrice": 85000,
+    "sourceType": "TB",
+    "groupLabel": "CÂY CHỐNG VÁN KHUÔN (TẠM TÍNH)"
+  },
+  {
+    "code": "TB.Lanhto",
+    "name": "Thiết bị, cây chống ván khuôn lanh tô/bổ trụ/chân cơ/cầu thang",
+    "unit": "m2",
+    "unitPrice": 35000,
+    "sourceType": "TB",
+    "groupLabel": "CÂY CHỐNG VÁN KHUÔN (TẠM TÍNH)"
+  },
+  {
+    "code": "NC.BT.Lot",
+    "name": "Bê tông lót móng, lót giằng móng",
+    "unit": "m3",
+    "unitPrice": 500000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC BÊ TÔNG"
+  },
+  {
+    "code": "NC.BT.Mong",
+    "name": "Bê tông móng, giằng móng (hầm)",
+    "unit": "m3",
+    "unitPrice": 95000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC BÊ TÔNG"
+  },
+  {
+    "code": "NC.BT.CvHam",
+    "name": "Bê tông cột, vách hầm",
+    "unit": "m3",
+    "unitPrice": 100000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC BÊ TÔNG"
+  },
+  {
+    "code": "NC.BT.DsHam",
+    "name": "Bê tông dầm, sàn hầm/Ground",
+    "unit": "m3",
+    "unitPrice": 100000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC BÊ TÔNG"
+  },
+  {
+    "code": "NC.BT.Cauth",
+    "name": "Bê tông cầu thang bộ (hầm)",
+    "unit": "m3",
+    "unitPrice": 250000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC BÊ TÔNG"
+  },
+  {
+    "code": "NC.BT.Benuoc",
+    "name": "Bê tông bể XLTN/PCCC/sinh hoạt/hồ bơi",
+    "unit": "m3",
+    "unitPrice": 120000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC BÊ TÔNG"
+  },
+  {
+    "code": "NC.BT.Ram",
+    "name": "Bê tông ramp dốc",
+    "unit": "m3",
+    "unitPrice": 120000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC BÊ TÔNG"
+  },
+  {
+    "code": "NC.BT.CvDe",
+    "name": "Bê tông cột, vách khối đế",
+    "unit": "m3",
+    "unitPrice": 110000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC BÊ TÔNG"
+  },
+  {
+    "code": "NC.BT.DsDe",
+    "name": "Bê tông dầm, sàn khối đế",
+    "unit": "m3",
+    "unitPrice": 100000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC BÊ TÔNG"
+  },
+  {
+    "code": "NC.BT.CvThan",
+    "name": "Bê tông cột, vách khối tháp",
+    "unit": "m3",
+    "unitPrice": 120000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC BÊ TÔNG"
+  },
+  {
+    "code": "NC.BT.DsThan",
+    "name": "Bê tông dầm, sàn khối tháp",
+    "unit": "m3",
+    "unitPrice": 110000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC BÊ TÔNG"
+  },
+  {
+    "code": "NC.VK.Lot",
+    "name": "Ván khuôn bê tông lót móng, giằng móng",
+    "unit": "m2",
+    "unitPrice": 150000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC VÁN KHUÔN"
+  },
+  {
+    "code": "NC.VK.Mong",
+    "name": "Ván khuôn đài móng, giằng móng",
+    "unit": "m2",
+    "unitPrice": 155000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC VÁN KHUÔN"
+  },
+  {
+    "code": "NC.VK.DsHam",
+    "name": "Ván khuôn dầm, sàn (hầm/Ground)",
+    "unit": "m2",
+    "unitPrice": 155000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC VÁN KHUÔN"
+  },
+  {
+    "code": "NC.VK.Benuoc",
+    "name": "Ván khuôn bể XLTN/PCCC/sinh hoạt/hồ bơi/cảnh quan",
+    "unit": "m2",
+    "unitPrice": 175000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC VÁN KHUÔN"
+  },
+  {
+    "code": "NC.VK.Ram",
+    "name": "Ván khuôn ram dốc",
+    "unit": "m2",
+    "unitPrice": 175000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC VÁN KHUÔN"
+  },
+  {
+    "code": "NC.VK.DsDe",
+    "name": "Ván khuôn dầm, sàn khối đế (<6m)",
+    "unit": "m2",
+    "unitPrice": 170000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC VÁN KHUÔN"
+  },
+  {
+    "code": "NC.VK.Cauth",
+    "name": "Ván khuôn cầu thang bộ (hầm/Ground)",
+    "unit": "m2",
+    "unitPrice": 220000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC VÁN KHUÔN"
+  },
+  {
+    "code": "NC.VK.Cauth.nh",
+    "name": "Ván khuôn cầu thang bộ khối tháp",
+    "unit": "m2",
+    "unitPrice": 135000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC VÁN KHUÔN"
+  },
+  {
+    "code": "NC.VK.CvHam",
+    "name": "Ván khuôn cột, vách hầm",
+    "unit": "m2",
+    "unitPrice": 115000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC VÁN KHUÔN"
+  },
+  {
+    "code": "NC.VK.CvThan",
+    "name": "Ván khuôn cột, vách khối tháp (<4m)",
+    "unit": "m2",
+    "unitPrice": 115000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC VÁN KHUÔN"
+  },
+  {
+    "code": "NC.VK.DsThan",
+    "name": "Ván khuôn dầm, sàn khối tháp (<4m)",
+    "unit": "m2",
+    "unitPrice": 115000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC VÁN KHUÔN"
+  },
+  {
+    "code": "NC.VK.CvDe",
+    "name": "Ván khuôn cột, vách khối đế (<6m)",
+    "unit": "m2",
+    "unitPrice": 125000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC VÁN KHUÔN"
+  },
+  {
+    "code": "NC.VK.DsMai",
+    "name": "Ván khuôn dầm, sàn tầng kỹ thuật, tầng mái",
+    "unit": "m2",
+    "unitPrice": 170000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC VÁN KHUÔN"
+  },
+  {
+    "code": "NC.VK.CvMai",
+    "name": "Ván khuôn cột, vách tầng kỹ thuật, tầng mái",
+    "unit": "m2",
+    "unitPrice": 125000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC VÁN KHUÔN"
+  },
+  {
+    "code": "NC.CT.Ham",
+    "name": "Gia công & lắp dựng cốt thép - Phần Hầm",
+    "unit": "kg",
+    "unitPrice": 3150,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC CỐT THÉP KẾT CẤU CHÍNH"
+  },
+  {
+    "code": "NC.CT.Than",
+    "name": "Gia công & lắp dựng cốt thép - Phần Thân (khối đế + khối tháp)",
+    "unit": "kg",
+    "unitPrice": 3350,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC CỐT THÉP KẾT CẤU CHÍNH"
+  },
+  {
+    "code": "NC.VK.Lanhto",
+    "name": "SXLD và tháo dỡ ván khuôn lanh tô, bổ trụ, chân cơ, cầu thang",
+    "unit": "m2",
+    "unitPrice": 300000,
+    "sourceType": "NC",
+    "groupLabel": "PHẦN HOÀN THIỆN"
+  },
+  {
+    "code": "NC.CT.Lanhto",
+    "name": "Gia công, lắp dựng cốt thép lanh tô, bổ trụ, chân cơ, cầu thang, tấm đan",
+    "unit": "kg",
+    "unitPrice": 6000,
+    "sourceType": "NC",
+    "groupLabel": "PHẦN HOÀN THIỆN"
+  },
+  {
+    "code": "NC.BT.Lanhto",
+    "name": "Bê tông chân cơ, bê tông thủ công B15~M200",
+    "unit": "m3",
+    "unitPrice": 1000000,
+    "sourceType": "NC",
+    "groupLabel": "PHẦN HOÀN THIỆN"
+  },
+  {
+    "code": "NC.XT.Gd.N300",
+    "name": "Xây gạch đặc nung 55x90x200mm, tường thẳng dày ≤30cm, vữa M75",
+    "unit": "m3",
+    "unitPrice": 1330000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC XÂY TƯỜNG"
+  },
+  {
+    "code": "NC.XT.Gd.N100",
+    "name": "Xây gạch đặc nung 55x90x200mm, tường thẳng dày ≤10cm, vữa M75",
+    "unit": "m3",
+    "unitPrice": 1430000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC XÂY TƯỜNG"
+  },
+  {
+    "code": "NC.XT.Gd.0.300",
+    "name": "Xây gạch đặc không nung 190x90x55mm, tường thẳng dày ≤30cm, vữa M75",
+    "unit": "m3",
+    "unitPrice": 1330000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC XÂY TƯỜNG"
+  },
+  {
+    "code": "NC.XT.Gd.0.100",
+    "name": "Xây gạch đặc không nung 190x90x55mm, tường thẳng dày ≤10cm, vữa M75",
+    "unit": "m3",
+    "unitPrice": 1430000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC XÂY TƯỜNG"
+  },
+  {
+    "code": "NC.XT.Grg.0.300",
+    "name": "Xây gạch rỗng không nung 190x135x95mm, tường thẳng dày ≤30cm, vữa M75",
+    "unit": "m3",
+    "unitPrice": 1100000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC XÂY TƯỜNG"
+  },
+  {
+    "code": "NC.XT.Grg.0.100",
+    "name": "Xây gạch rỗng không nung 190x135x95mm, tường thẳng dày ≤10cm, vữa M75",
+    "unit": "m3",
+    "unitPrice": 1200000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC XÂY TƯỜNG"
+  },
+  {
+    "code": "NC.XT.Grg.N100",
+    "name": "Xây gạch ống nung 6 lỗ 8x8x18, tường thẳng dày ≤10cm, vữa M75, không trát",
+    "unit": "m3",
+    "unitPrice": 1350000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC XÂY TƯỜNG"
+  },
+  {
+    "code": "NC.XT.#",
+    "name": "Xây gạch đặc nung, bậc cấp cầu thang, hộp kỹ thuật, tường trên vòm lanh tô cong",
+    "unit": "m3",
+    "unitPrice": 2000000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC XÂY TƯỜNG"
+  },
+  {
+    "code": "NC.TrNg",
+    "name": "Trát tường ngoài nhà, dày ≤15mm, vữa M75",
+    "unit": "m2",
+    "unitPrice": 165000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC CÁN, TRÁT"
+  },
+  {
+    "code": "NC.TrTr",
+    "name": "Trát tường trong nhà, dày ≤15mm, vữa M75",
+    "unit": "m2",
+    "unitPrice": 100000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC CÁN, TRÁT"
+  },
+  {
+    "code": "NC.TrCot",
+    "name": "Trát cột, dầm, cầu thang dày ≤15mm, vữa M75",
+    "unit": "m2",
+    "unitPrice": 117000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC CÁN, TRÁT"
+  },
+  {
+    "code": "NC.TrCC",
+    "name": "Trát cạnh cửa (má cửa) dày ≤15mm, vữa M75",
+    "unit": "m2",
+    "unitPrice": 175000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC CÁN, TRÁT"
+  },
+  {
+    "code": "NC.Tr#",
+    "name": "Trát bậc cấp/bồn hoa/bệ ngồi dày 1,5cm, M75",
+    "unit": "m2",
+    "unitPrice": 117000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC CÁN, TRÁT"
+  },
+  {
+    "code": "NC.TrBN",
+    "name": "Trát bảo vệ bể nước sạch dày 2cm, M75",
+    "unit": "m2",
+    "unitPrice": 117000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC CÁN, TRÁT"
+  },
+  {
+    "code": "NC.Lth",
+    "name": "GCLD lưới thép tường trát rộng 150-200mm",
+    "unit": "md",
+    "unitPrice": 9000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC CÁN, TRÁT"
+  },
+  {
+    "code": "NC.Cn20",
+    "name": "Cán nền vữa xi măng M75 dày 20mm",
+    "unit": "m2",
+    "unitPrice": 60000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC CÁN, TRÁT"
+  },
+  {
+    "code": "NC.Cn30",
+    "name": "Cán nền vữa xi măng M75 dày 30mm",
+    "unit": "m2",
+    "unitPrice": 78000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC CÁN, TRÁT"
+  },
+  {
+    "code": "NC.Cn35",
+    "name": "Cán nền vữa xi măng M75 dày 35mm",
+    "unit": "m2",
+    "unitPrice": 81500,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC CÁN, TRÁT"
+  },
+  {
+    "code": "NC.Cn40",
+    "name": "Cán nền vữa xi măng M75 dày 40mm",
+    "unit": "m2",
+    "unitPrice": 85000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC CÁN, TRÁT"
+  },
+  {
+    "code": "NC.Cn50",
+    "name": "Cán nền vữa xi măng M75 dày 50mm",
+    "unit": "m2",
+    "unitPrice": 92000,
+    "sourceType": "NC",
+    "groupLabel": "CÔNG TÁC CÁN, TRÁT"
+  },
+  {
+    "code": "NC.KC10",
+    "name": "Khoan cấy thép Fi10 vào KCBT hiện hữu",
+    "unit": "lỗ",
+    "unitPrice": 12000,
+    "sourceType": "NC",
+    "groupLabel": "KHOAN CẤY THÉP RAMSET/HILTI"
+  },
+  {
+    "code": "NC.KC12",
+    "name": "Khoan cấy thép Fi12 vào KCBT hiện hữu",
+    "unit": "lỗ",
+    "unitPrice": 14000,
+    "sourceType": "NC",
+    "groupLabel": "KHOAN CẤY THÉP RAMSET/HILTI"
+  },
+  {
+    "code": "NC.KC14",
+    "name": "Khoan cấy thép Fi14 vào KCBT hiện hữu",
+    "unit": "lỗ",
+    "unitPrice": 16000,
+    "sourceType": "NC",
+    "groupLabel": "KHOAN CẤY THÉP RAMSET/HILTI"
+  },
+  {
+    "code": "NC.KC16",
+    "name": "Khoan cấy thép Fi16 vào KCBT hiện hữu",
+    "unit": "lỗ",
+    "unitPrice": 20000,
+    "sourceType": "NC",
+    "groupLabel": "KHOAN CẤY THÉP RAMSET/HILTI"
+  },
+  {
+    "code": "NC.KC18",
+    "name": "Khoan cấy thép Fi18 vào KCBT hiện hữu",
+    "unit": "lỗ",
+    "unitPrice": 25000,
+    "sourceType": "NC",
+    "groupLabel": "KHOAN CẤY THÉP RAMSET/HILTI"
+  },
+  {
+    "code": "NC.KC20",
+    "name": "Khoan cấy thép Fi20 vào KCBT hiện hữu",
+    "unit": "lỗ",
+    "unitPrice": 35000,
+    "sourceType": "NC",
+    "groupLabel": "KHOAN CẤY THÉP RAMSET/HILTI"
+  },
+  {
+    "code": "NC.KC22",
+    "name": "Khoan cấy thép Fi22 vào KCBT hiện hữu",
+    "unit": "lỗ",
+    "unitPrice": 45000,
+    "sourceType": "NC",
+    "groupLabel": "KHOAN CẤY THÉP RAMSET/HILTI"
+  },
+  {
+    "code": "NC.KC25",
+    "name": "Khoan cấy thép Fi25 vào KCBT hiện hữu",
+    "unit": "lỗ",
+    "unitPrice": 55000,
+    "sourceType": "NC",
+    "groupLabel": "KHOAN CẤY THÉP RAMSET/HILTI"
+  },
+  {
+    "code": "AE.91347",
+    "name": "Râu tường xây gạch",
+    "unit": "lỗ",
+    "unitPrice": 0,
+    "sourceType": "NC",
+    "groupLabel": "(Tự phát sinh - chưa có giá gốc, cần TMN bổ sung)"
+  },
+  {
+    "code": "TMN.PK.003",
+    "name": "Cục thí cửa",
+    "unit": "cái",
+    "unitPrice": 0,
+    "sourceType": "NC",
+    "groupLabel": "(Tự phát sinh - chưa có giá gốc, cần TMN bổ sung)"
+  },
+  {
+    "code": "TMN.PK.004",
+    "name": "Lưới thép tách mác (trường hợp yêu cầu đổ bê tông loe đầu cột, vách)",
+    "unit": "m2",
+    "unitPrice": 0,
+    "sourceType": "NC",
+    "groupLabel": "(Tự phát sinh - chưa có giá gốc, cần TMN bổ sung)"
+  }
+]

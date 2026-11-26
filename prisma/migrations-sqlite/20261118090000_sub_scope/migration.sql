@@ -1,0 +1,1 @@
+ALTER TABLE "SubProposal" ADD COLUMN "scope" TEXT NOT NULL DEFAULT '[]';

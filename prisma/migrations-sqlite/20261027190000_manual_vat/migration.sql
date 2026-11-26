@@ -1,0 +1,1 @@
+ALTER TABLE "SheetManualItem" ADD COLUMN "vatRate" REAL NOT NULL DEFAULT 0;

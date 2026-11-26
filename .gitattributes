@@ -1,0 +1,6 @@
+# file .bat phải giữ xuống dòng kiểu Windows (CRLF), nếu không cmd chạy sai
+*.bat text eol=crlf
+*.cmd text eol=crlf
+# File chạy trên máy chủ Linux phải giữ xuống dòng kiểu LF (Git trên Windows không đổi sang CRLF)
+*.sh text eol=lf
+Dockerfile text eol=lf

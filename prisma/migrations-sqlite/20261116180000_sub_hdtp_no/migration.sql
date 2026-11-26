@@ -1,0 +1,1 @@
+ALTER TABLE "SubProposal" ADD COLUMN "hdtpNo" TEXT NOT NULL DEFAULT '';

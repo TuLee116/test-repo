@@ -1,0 +1,1 @@
+ALTER TABLE "SubProposal" ADD COLUMN "oneQty" BOOLEAN NOT NULL DEFAULT false;

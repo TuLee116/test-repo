@@ -1,0 +1,1 @@
+ALTER TABLE "SubProposal" ADD COLUMN "makerSeenAt" DATETIME;

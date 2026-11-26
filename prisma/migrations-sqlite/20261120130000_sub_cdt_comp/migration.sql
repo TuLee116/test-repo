@@ -1,0 +1,2 @@
+ALTER TABLE "SubLine" ADD COLUMN "cdtVt" REAL;
+ALTER TABLE "SubLine" ADD COLUMN "cdtNc" REAL;

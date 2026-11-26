@@ -1,0 +1,1 @@
+ALTER TABLE "SubcontractorItem" ADD COLUMN "prelimPct" REAL NOT NULL DEFAULT 0;

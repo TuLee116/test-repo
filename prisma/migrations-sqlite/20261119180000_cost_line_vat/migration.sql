@@ -1,0 +1,1 @@
+ALTER TABLE "CostLine" ADD COLUMN "vatPct" REAL;
